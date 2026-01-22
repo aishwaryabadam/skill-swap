@@ -41,13 +41,13 @@ export default function ProfileDetailPage() {
   };
 
   const handleSendSwapRequest = async () => {
-    if (!isAuthenticated || !member || !id) return;
+    if (!isAuthenticated || !member?.loginEmail || !id) return;
 
     try {
       setIsSending(true);
       await BaseCrudService.create('swaprequests', {
         _id: crypto.randomUUID(),
-        senderProfileId: member._id,
+        senderProfileId: member.loginEmail,
         recipientProfileId: id,
         message: message || '',
         status: 'pending',
