@@ -4,6 +4,27 @@
  */
 
 /**
+ * Collection ID: swaprequests
+ * Interface for SwapRequests
+ */
+export interface SwapRequests {
+  _id: string;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+  /** @wixFieldType text */
+  senderProfileId?: string;
+  /** @wixFieldType text */
+  recipientProfileId?: string;
+  /** @wixFieldType text */
+  message?: string;
+  /** @wixFieldType text */
+  status?: string;
+  /** @wixFieldType datetime */
+  sentAt?: Date | string;
+}
+
+
+/**
  * Collection ID: userprofiles
  * Interface for UserProfiles
  */

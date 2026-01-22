@@ -7,13 +7,20 @@ import { UserProfiles } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Image } from '@/components/ui/image';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useMember } from '@/integrations';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { member, isAuthenticated } = useMember();
   const [profile, setProfile] = useState<UserProfiles | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [message, setMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -30,6 +37,31 @@ export default function ProfileDetailPage() {
       console.error('Error loading profile:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSendSwapRequest = async () => {
+    if (!isAuthenticated || !member || !id) return;
+
+    try {
+      setIsSending(true);
+      await BaseCrudService.create('swaprequests', {
+        _id: crypto.randomUUID(),
+        senderProfileId: member._id,
+        recipientProfileId: id,
+        message: message || '',
+        status: 'pending',
+        sentAt: new Date(),
+      });
+      
+      setIsDialogOpen(false);
+      setMessage('');
+      alert('Swap request sent successfully!');
+    } catch (error) {
+      console.error('Error sending swap request:', error);
+      alert('Failed to send swap request. Please try again.');
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -205,11 +237,64 @@ export default function ProfileDetailPage() {
                 <p className="font-paragraph text-lg text-secondary-foreground mb-6 max-w-2xl mx-auto">
                   Connect with {profile.fullName?.split(' ')[0] || 'this user'} to discuss potential skill exchange opportunities.
                 </p>
-                <Button className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base font-paragraph">
-                  <Mail className="mr-2 h-5 w-5" />
-                  Send Swap Request
-                </Button>
+                {isAuthenticated ? (
+                  <Button 
+                    onClick={() => setIsDialogOpen(true)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base font-paragraph"
+                  >
+                    <Mail className="mr-2 h-5 w-5" />
+                    Send Swap Request
+                  </Button>
+                ) : (
+                  <p className="font-paragraph text-base text-secondary-foreground">
+                    Sign in to send a swap request
+                  </p>
+                )}
               </motion.div>
+
+              {/* Swap Request Dialog */}
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="font-heading text-2xl uppercase">
+                      Send Swap Request
+                    </DialogTitle>
+                    <DialogDescription className="font-paragraph text-base">
+                      Send a message to {profile.fullName} to propose a skill swap.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="font-paragraph text-sm text-foreground block mb-2">
+                        Message (Optional)
+                      </label>
+                      <Textarea
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Tell them about your skills and what you'd like to learn..."
+                        className="font-paragraph text-base"
+                        rows={4}
+                      />
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsDialogOpen(false)}
+                        className="flex-1 border-2 border-foreground text-foreground hover:bg-secondary h-11 font-paragraph"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={handleSendSwapRequest}
+                        disabled={isSending}
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph"
+                      >
+                        {isSending ? 'Sending...' : 'Send Request'}
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </motion.div>
           )}
         </div>
