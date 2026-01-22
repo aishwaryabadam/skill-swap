@@ -7,6 +7,7 @@ import HomePage from '@/components/pages/HomePage';
 import ProfilesPage from '@/components/pages/ProfilesPage';
 import ProfileDetailPage from '@/components/pages/ProfileDetailPage';
 import MyProfilePage from '@/components/pages/MyProfilePage';
+import IncomingSwapRequestsPage from '@/components/pages/IncomingSwapRequestsPage';
 
 // Layout component that includes ScrollToTop
 function Layout() {
@@ -54,6 +55,17 @@ const router = createBrowserRouter([
         ),
         routeMetadata: {
           pageIdentifier: 'my-profile',
+        },
+      },
+      {
+        path: "incoming-requests",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to view your incoming swap requests">
+            <IncomingSwapRequestsPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'incoming-requests',
         },
       },
       {

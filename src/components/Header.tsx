@@ -53,6 +53,12 @@ export default function Header() {
             {!isLoading && isAuthenticated && (
               <>
                 <Link 
+                  to="/incoming-requests" 
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Requests
+                </Link>
+                <Link 
                   to="/my-profile" 
                   className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
                 >
@@ -120,6 +126,13 @@ export default function Header() {
             
             {!isLoading && isAuthenticated && (
               <>
+                <Link 
+                  to="/incoming-requests" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Requests
+                </Link>
                 <Link 
                   to="/my-profile" 
                   onClick={() => setMobileMenuOpen(false)}
