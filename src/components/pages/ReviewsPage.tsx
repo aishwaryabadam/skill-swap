@@ -422,6 +422,11 @@ export default function ReviewsPage() {
                   </option>
                 ))}
               </select>
+              {formData.revieweeId && formData.revieweeName && (
+                <p className="font-paragraph text-sm text-primary mt-2">
+                  Reviewing: <strong>{formData.revieweeName}</strong>
+                </p>
+              )}
             </div>
 
             {/* Rating */}

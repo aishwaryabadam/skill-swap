@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit, CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { Plus, Trash2, Edit, CheckCircle, Clock, BookOpen, AlertCircle } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles, Sessions } from '@/entities';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Image } from '@/components/ui/image';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { format } from 'date-fns';
@@ -35,6 +36,17 @@ interface Test {
   _updatedDate?: Date;
 }
 
+interface LearnerSubmission {
+  answers: number[];
+  submittedAt: Date | string;
+}
+
+interface TestSubmissionMode {
+  testId: string;
+  questions: Question[];
+  answers: number[];
+}
+
 export default function TestsPage() {
   const { member } = useMember();
   const [tests, setTests] = useState<Test[]>([]);
@@ -52,6 +64,8 @@ export default function TestsPage() {
     testTitle: '',
     sessionId: ''
   });
+  const [submissionMode, setSubmissionMode] = useState<TestSubmissionMode | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     loadTests();
@@ -202,6 +216,62 @@ export default function TestsPage() {
     }
   };
 
+  const handleStartTest = (test: Test) => {
+    try {
+      const parsedQuestions = JSON.parse(test.questions || '[]');
+      setSubmissionMode({
+        testId: test._id,
+        questions: parsedQuestions,
+        answers: new Array(parsedQuestions.length).fill(-1)
+      });
+    } catch (error) {
+      console.error('Error parsing test:', error);
+      alert('Failed to load test. Please try again.');
+    }
+  };
+
+  const handleSubmitTest = async () => {
+    if (!submissionMode || !member?._id) return;
+
+    try {
+      setIsSubmitting(true);
+      
+      // Calculate score
+      let correctCount = 0;
+      submissionMode.questions.forEach((q, idx) => {
+        if (submissionMode.answers[idx] === q.correctAnswer) {
+          correctCount++;
+        }
+      });
+      const score = Math.round((correctCount / submissionMode.questions.length) * 100);
+
+      // Find the test to get tutor ID
+      const test = tests.find(t => t._id === submissionMode.testId);
+      if (!test) return;
+
+      // Update test with submission
+      await BaseCrudService.update<Test>('tests', {
+        _id: submissionMode.testId,
+        learnerSubmissions: JSON.stringify({
+          learnerId: member._id,
+          answers: submissionMode.answers,
+          submittedAt: new Date()
+        }),
+        score: score,
+        submissionDate: new Date()
+      });
+
+      await loadTests();
+      setSubmissionMode(null);
+      alert(`Test submitted! Your score: ${score}%`);
+    } catch (error) {
+      console.error('Error submitting test:', error);
+      alert('Failed to submit test. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -209,6 +279,90 @@ export default function TestsPage() {
         <div className="flex justify-center items-center py-20">
           <LoadingSpinner />
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // If in submission mode, show test submission interface
+  if (submissionMode) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+
+        {/* Test Header */}
+        <section className="w-full bg-primary py-8">
+          <div className="max-w-[100rem] mx-auto px-8 md:px-16">
+            <h1 className="font-heading text-3xl md:text-4xl uppercase text-primary-foreground">
+              Take Test
+            </h1>
+          </div>
+        </section>
+
+        {/* Test Content */}
+        <section className="w-full max-w-[100rem] mx-auto px-8 md:px-16 py-12">
+          <div className="space-y-8">
+            {submissionMode.questions.map((q, qIndex) => (
+              <motion.div
+                key={q.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: qIndex * 0.1 }}
+                className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
+              >
+                <h3 className="font-heading text-lg uppercase text-foreground mb-6">
+                  Question {qIndex + 1}: {q.question}
+                </h3>
+                <div className="space-y-3">
+                  {q.options.map((option, optIndex) => (
+                    <label key={optIndex} className="flex items-center gap-3 p-4 bg-background rounded-sm cursor-pointer hover:bg-primary/5 transition-colors border-2 border-transparent hover:border-primary">
+                      <input
+                        type="radio"
+                        name={`question-${qIndex}`}
+                        checked={submissionMode.answers[qIndex] === optIndex}
+                        onChange={() => {
+                          const newAnswers = [...submissionMode.answers];
+                          newAnswers[qIndex] = optIndex;
+                          setSubmissionMode({ ...submissionMode, answers: newAnswers });
+                        }}
+                        className="w-4 h-4"
+                      />
+                      <span className="font-paragraph text-base text-secondary-foreground">{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+
+            {/* Submit Button */}
+            <div className="flex gap-4 pt-8">
+              <Button
+                onClick={() => setSubmissionMode(null)}
+                variant="outline"
+                className="flex-1 border-2 border-foreground text-foreground hover:bg-secondary h-12 font-paragraph"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSubmitTest}
+                disabled={isSubmitting || submissionMode.answers.includes(-1)}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-paragraph"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Test'}
+              </Button>
+            </div>
+
+            {submissionMode.answers.includes(-1) && (
+              <Alert className="border-2 border-destructive bg-destructive/10">
+                <AlertCircle className="h-4 w-4 text-destructive" />
+                <AlertDescription className="text-destructive font-paragraph">
+                  Please answer all questions before submitting.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        </section>
+
         <Footer />
       </div>
     );
@@ -341,7 +495,7 @@ export default function TestsPage() {
                 <div className="flex items-center gap-3 mb-8">
                   <CheckCircle className="w-8 h-8 text-primary" />
                   <h2 className="font-heading text-3xl uppercase text-foreground">
-                    Tests You Submitted
+                    Tests Available to Take
                   </h2>
                   <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
                     {submittedTests.length}
@@ -350,6 +504,7 @@ export default function TestsPage() {
                 <div className="grid gap-6">
                   {submittedTests.map((test, index) => {
                     const tutor = tutorProfiles[test.tutorId || ''];
+                    const isAlreadySubmitted = test.learnerSubmissions && test.learnerSubmissions.length > 0;
                     return (
                       <motion.div
                         key={test._id}
@@ -377,17 +532,33 @@ export default function TestsPage() {
                               <p className="font-paragraph text-sm text-secondary-foreground">
                                 By {tutor?.fullName || 'Unknown Tutor'}
                               </p>
-                            </div>
+                            </div>\
                           </div>
                         </div>
-                        <div className="bg-primary/10 p-4 rounded-sm">
-                          <p className="font-paragraph text-sm text-secondary-foreground">
-                            <strong>Your Score:</strong> {test.score || 0}%
-                          </p>
-                          <p className="font-paragraph text-sm text-secondary-foreground mt-2">
-                            <strong>Submitted:</strong> {test.submissionDate ? format(new Date(test.submissionDate), 'MMM dd, yyyy HH:mm') : 'Not submitted'}
-                          </p>
+                        <div className="bg-primary/10 p-4 rounded-sm mb-4">
+                          {isAlreadySubmitted ? (
+                            <>
+                              <p className="font-paragraph text-sm text-secondary-foreground">
+                                <strong>Your Score:</strong> {test.score || 0}%
+                              </p>
+                              <p className="font-paragraph text-sm text-secondary-foreground mt-2">
+                                <strong>Submitted:</strong> {test.submissionDate ? format(new Date(test.submissionDate), 'MMM dd, yyyy HH:mm') : 'Not submitted'}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="font-paragraph text-sm text-secondary-foreground">
+                              <strong>Status:</strong> Not yet submitted
+                            </p>
+                          )}
                         </div>
+                        {!isAlreadySubmitted && (
+                          <Button
+                            onClick={() => handleStartTest(test)}
+                            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph"
+                          >
+                            Take Test
+                          </Button>
+                        )}
                       </motion.div>
                     );
                   })}

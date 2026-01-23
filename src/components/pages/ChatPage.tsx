@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, ArrowLeft, Paperclip, X } from 'lucide-react';
+import { Send, ArrowLeft, Paperclip, X, Download } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
@@ -20,6 +20,12 @@ interface ChatMessage {
   content?: string;
   timestamp?: Date | string;
   isRead?: boolean;
+  fileData?: {
+    name: string;
+    type: string;
+    size: number;
+    dataUrl?: string;
+  };
 }
 
 export default function ChatPage() {
@@ -109,23 +115,37 @@ export default function ChatPage() {
     try {
       setIsSending(true);
       
-      // For now, we'll store file info as text. In production, you'd upload to cloud storage
-      let fileData = '';
+      // Prepare file data if file is selected
+      let fileData = undefined;
       if (selectedFile) {
-        // Create a simple file reference (in production, upload to cloud storage like Wix Media)
-        fileData = `[FILE: ${selectedFile.name} (${selectedFile.type})]`;
+        // For images, include base64 data; for other files, just metadata
+        if (selectedFile.type.startsWith('image/')) {
+          fileData = {
+            name: selectedFile.name,
+            type: selectedFile.type,
+            size: selectedFile.size,
+            dataUrl: filePreview
+          };
+        } else {
+          fileData = {
+            name: selectedFile.name,
+            type: selectedFile.type,
+            size: selectedFile.size
+          };
+        }
       }
 
-      const finalContent = fileData ? `${messageText}\n${fileData}` : messageText;
-
-      await BaseCrudService.create('chatmessages', {
+      const messageData = {
         _id: crypto.randomUUID(),
         senderId: member.loginEmail,
         recipientId: id,
-        content: finalContent,
+        content: messageText,
         timestamp: new Date(),
-        isRead: false
-      });
+        isRead: false,
+        ...(fileData && { fileData })
+      };
+
+      await BaseCrudService.create('chatmessages', messageData);
 
       setMessageText('');
       setSelectedFile(null);
@@ -154,6 +174,15 @@ export default function ChatPage() {
       } else {
         setFilePreview('');
       }
+    }
+  };
+
+  const downloadFile = (fileData: any) => {
+    if (fileData.dataUrl) {
+      const link = document.createElement('a');
+      link.href = fileData.dataUrl;
+      link.download = fileData.name;
+      link.click();
     }
   };
 
@@ -222,13 +251,50 @@ export default function ChatPage() {
                 className={`flex ${msg.senderId === member?.loginEmail ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-lg ${ 
                     msg.senderId === member?.loginEmail
                       ? 'bg-primary text-primary-foreground'
                       : 'bg-secondary text-secondary-foreground'
                   }`}
                 >
-                  <p className="font-paragraph text-sm break-words">{msg.content}</p>
+                  {msg.content && (
+                    <p className="font-paragraph text-sm break-words">{msg.content}</p>
+                  )}
+                  
+                  {/* File Display */}
+                  {msg.fileData && (
+                    <div className="mt-3 pt-3 border-t border-current border-opacity-20">
+                      {msg.fileData.dataUrl && msg.fileData.type.startsWith('image/') ? (
+                        <div className="rounded-sm overflow-hidden max-w-xs">
+                          <Image 
+                            src={msg.fileData.dataUrl} 
+                            alt={msg.fileData.name}
+                            className="w-full h-auto"
+                            width={300}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 p-2 bg-current bg-opacity-10 rounded-sm">
+                          <Paperclip className="h-4 w-4" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-paragraph text-xs truncate">{msg.fileData.name}</p>
+                            <p className="font-paragraph text-xs opacity-70">
+                              {(msg.fileData.size / 1024).toFixed(2)} KB
+                            </p>
+                          </div>
+                          {msg.fileData.dataUrl && (
+                            <button
+                              onClick={() => downloadFile(msg.fileData)}
+                              className="p-1 hover:opacity-70 transition-opacity"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
                   <p className={`font-paragraph text-xs mt-2 ${
                     msg.senderId === member?.loginEmail
                       ? 'text-primary-foreground/70'
@@ -253,7 +319,7 @@ export default function ChatPage() {
               <div className="flex items-center gap-3">
                 {filePreview ? (
                   <div className="w-12 h-12 rounded-sm overflow-hidden">
-                    <Image src={filePreview} alt="preview" className="w-full h-full object-cover" />
+                    <Image src={filePreview} alt="preview" className="w-full h-full object-cover" width={48} />
                   </div>
                 ) : (
                   <Paperclip className="h-6 w-6 text-primary" />
