@@ -98,6 +98,8 @@ export interface UserProfiles {
   /** @wixFieldType text */
   fullName?: string;
   /** @wixFieldType text */
+  availabilityDays?: string;
+  /** @wixFieldType text */
   githubId?: string;
   /** @wixFieldType url */
   linkedinUrl?: string;

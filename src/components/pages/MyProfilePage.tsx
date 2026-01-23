@@ -28,10 +28,25 @@ export default function MyProfilePage() {
     skillsToLearn: '',
     isAvailable: true,
     availabilityDetails: '',
+    availabilityDays: '',
     instagramId: '',
     linkedinUrl: '',
     githubId: ''
   });
+
+  const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  const getSelectedDays = () => {
+    return formData.availabilityDays ? formData.availabilityDays.split(',').map(d => d.trim()) : [];
+  };
+
+  const toggleDay = (day: string) => {
+    const selected = getSelectedDays();
+    const updated = selected.includes(day)
+      ? selected.filter(d => d !== day)
+      : [...selected, day];
+    setFormData(prev => ({ ...prev, availabilityDays: updated.join(',') }));
+  };
 
   useEffect(() => {
     loadProfile();
@@ -109,6 +124,7 @@ export default function MyProfilePage() {
         skillsToLearn: profile.skillsToLearn || '',
         isAvailable: profile.isAvailable ?? true,
         availabilityDetails: profile.availabilityDetails || '',
+        availabilityDays: profile.availabilityDays || '',
         instagramId: profile.instagramId || '',
         linkedinUrl: profile.linkedinUrl || '',
         githubId: profile.githubId || ''
@@ -259,6 +275,28 @@ export default function MyProfilePage() {
                       />
                     </div>
 
+                    {/* Availability Days */}
+                    <div>
+                      <Label className="font-heading text-sm uppercase text-foreground mb-3 block">
+                        Available Days of the Week
+                      </Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {DAYS_OF_WEEK.map(day => (
+                          <button
+                            key={day}
+                            onClick={() => toggleDay(day)}
+                            className={`px-4 py-3 rounded-sm font-paragraph text-sm font-medium transition-colors border-2 ${
+                              getSelectedDays().includes(day)
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background text-foreground border-neutralborder hover:border-primary'
+                            }`}
+                          >
+                            {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* Availability Details */}
                     <div>
                       <Label htmlFor="availabilityDetails" className="font-heading text-sm uppercase text-foreground mb-2 block">
@@ -269,7 +307,7 @@ export default function MyProfilePage() {
                         value={formData.availabilityDetails}
                         onChange={(e) => setFormData(prev => ({ ...prev, availabilityDetails: e.target.value }))}
                         className="font-paragraph min-h-24"
-                        placeholder="e.g., Weekday evenings, Weekend mornings..."
+                        placeholder="e.g., 9 AM - 5 PM, Evening sessions available..."
                       />
                     </div>
 

@@ -17,6 +17,7 @@ export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { member, isAuthenticated } = useMember();
   const [profile, setProfile] = useState<UserProfiles | null>(null);
+  const [reviews, setReviews] = useState<Reviews[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,6 +34,11 @@ export default function ProfileDetailPage() {
       setIsLoading(true);
       const data = await BaseCrudService.getById<UserProfiles>('userprofiles', id);
       setProfile(data);
+      
+      // Load reviews for this profile
+      const reviewsResult = await BaseCrudService.getAll<Reviews>('reviews', {}, { limit: 1000 });
+      const profileReviews = reviewsResult.items.filter(review => review.revieweeId === id);
+      setReviews(profileReviews);
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
@@ -223,6 +229,96 @@ export default function ProfileDetailPage() {
                   </motion.div>
                 )}
               </div>
+
+              {/* Reviews Section */}
+              {reviews.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="mb-12"
+                >
+                  <h2 className="font-heading text-3xl uppercase text-foreground mb-6">
+                    Reviews & Ratings
+                  </h2>
+                  
+                  {/* Average Rating */}
+                  <div className="bg-secondary p-6 rounded-sm mb-8">
+                    <div className="flex items-center gap-4">
+                      <div>
+                        <p className="font-heading text-sm uppercase text-secondary-foreground mb-2">
+                          Average Rating
+                        </p>
+                        <p className="font-heading text-5xl text-primary">
+                          {(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length).toFixed(1)}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star
+                            key={star}
+                            className={`h-6 w-6 ${
+                              star <= Math.round(reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length)
+                                ? 'fill-primary text-primary'
+                                : 'text-neutralborder'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div>
+                        <p className="font-heading text-sm uppercase text-secondary-foreground mb-2">
+                          Total Reviews
+                        </p>
+                        <p className="font-heading text-4xl text-primary">{reviews.length}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Individual Reviews */}
+                  <div className="space-y-6">
+                    {reviews.map((review, index) => (
+                      <motion.div
+                        key={review._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
+                        className="bg-secondary p-6 rounded-sm border-2 border-neutralborder"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <p className="font-heading text-sm uppercase text-secondary-foreground mb-1">
+                              Reviewed by: {review.reviewerId}
+                            </p>
+                            <p className="font-paragraph text-sm text-secondary-foreground">
+                              {review._createdDate ? new Date(review._createdDate).toLocaleDateString() : 'Recently'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Rating Stars */}
+                        <div className="flex gap-1 mb-4">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`h-4 w-4 ${
+                                star <= (review.rating || 0)
+                                  ? 'fill-primary text-primary'
+                                  : 'text-neutralborder'
+                              }`}
+                            />
+                          ))}
+                        </div>
+
+                        {review.comment && (
+                          <p className="font-paragraph text-base text-secondary-foreground leading-relaxed">
+                            {review.comment}
+                          </p>
+                        )}
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Contact CTA */}
               <motion.div

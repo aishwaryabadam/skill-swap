@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter } from 'lucide-react';
+import { Search, Filter, X } from 'lucide-react';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles } from '@/entities';
 import { Input } from '@/components/ui/input';
@@ -16,9 +16,11 @@ export default function ProfilesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'teach' | 'learn'>('all');
+  const [selectedDays, setSelectedDays] = useState<string[]>([]);
   const [hasNext, setHasNext] = useState(false);
   const [skip, setSkip] = useState(0);
   const LIMIT = 12;
+  const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
   useEffect(() => {
     loadProfiles();
@@ -26,7 +28,7 @@ export default function ProfilesPage() {
 
   useEffect(() => {
     filterProfiles();
-  }, [profiles, searchTerm, filterType]);
+  }, [profiles, searchTerm, filterType, selectedDays]);
 
   const loadProfiles = async () => {
     try {
@@ -66,7 +68,24 @@ export default function ProfilesPage() {
       filtered = filtered.filter(profile => profile.skillsToLearn);
     }
 
+    // Filter by availability days
+    if (selectedDays.length > 0) {
+      filtered = filtered.filter(profile => {
+        if (!profile.availabilityDays) return false;
+        const profileDays = profile.availabilityDays.split(',').map(d => d.trim());
+        return selectedDays.some(day => profileDays.includes(day));
+      });
+    }
+
     setFilteredProfiles(filtered);
+  };
+
+  const toggleDay = (day: string) => {
+    setSelectedDays(prev =>
+      prev.includes(day)
+        ? prev.filter(d => d !== day)
+        : [...prev, day]
+    );
   };
 
   const loadMore = () => {
@@ -98,7 +117,7 @@ export default function ProfilesPage() {
       {/* Search and Filter Section */}
       <section className="w-full bg-secondary py-8">
         <div className="max-w-[100rem] mx-auto px-8 md:px-16">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex flex-col gap-4 items-start">
             {/* Search Input */}
             <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-secondary-foreground" />
@@ -112,7 +131,7 @@ export default function ProfilesPage() {
             </div>
 
             {/* Filter Buttons */}
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex gap-2 w-full flex-wrap">
               <Button
                 onClick={() => setFilterType('all')}
                 variant={filterType === 'all' ? 'default' : 'outline'}
@@ -147,6 +166,39 @@ export default function ProfilesPage() {
               >
                 Learning
               </Button>
+            </div>
+
+            {/* Availability Days Filter */}
+            <div className="w-full">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-heading text-sm uppercase text-foreground">
+                  Filter by Availability Days
+                </p>
+                {selectedDays.length > 0 && (
+                  <button
+                    onClick={() => setSelectedDays([])}
+                    className="flex items-center gap-1 text-sm text-primary hover:text-primary/80 font-paragraph"
+                  >
+                    <X className="h-4 w-4" />
+                    Clear
+                  </button>
+                )}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
+                {DAYS_OF_WEEK.map(day => (
+                  <button
+                    key={day}
+                    onClick={() => toggleDay(day)}
+                    className={`px-3 py-2 rounded-sm font-paragraph text-xs font-medium transition-colors border-2 ${
+                      selectedDays.includes(day)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background text-foreground border-neutralborder hover:border-primary'
+                    }`}
+                  >
+                    {day.slice(0, 3)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -223,6 +275,21 @@ export default function ProfilesPage() {
                                   <p className="font-paragraph text-sm text-secondary-foreground line-clamp-1">
                                     {profile.skillsToLearn}
                                   </p>
+                                </div>
+                              )}
+
+                              {profile.availabilityDays && (
+                                <div className="mb-4">
+                                  <p className="font-heading text-xs uppercase text-foreground mb-2">
+                                    Available:
+                                  </p>
+                                  <div className="flex flex-wrap gap-1">
+                                    {profile.availabilityDays.split(',').map(day => (
+                                      <span key={day.trim()} className="inline-block px-2 py-1 bg-primary/10 text-primary text-xs rounded-sm font-paragraph">
+                                        {day.trim().slice(0, 3)}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               )}
 
