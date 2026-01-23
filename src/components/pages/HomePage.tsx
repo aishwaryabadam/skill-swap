@@ -69,12 +69,12 @@ export default function HomePage() {
       <Header />
 
       {/* HERO SECTION - Architectural Split */}
-      <section ref={heroRef} className="relative w-full max-w-[120rem] mx-auto px-4 md:px-8 pt-32 pb-12 md:pb-24 min-h-[95vh] flex flex-col">
+      <section ref={heroRef} className="relative w-full max-w-[120rem] mx-auto px-4 md:px-8 pt-24 pb-12 md:pb-24 min-h-[100vh] flex flex-col justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 flex-grow">
           
           {/* Left Column: Typography & Wireframe */}
           <div className="lg:col-span-4 flex flex-col justify-between relative z-10">
-            <div className="mt-8 lg:mt-16">
+            <div className="mt-0 lg:mt-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -104,12 +104,12 @@ export default function HomePage() {
                 className="flex flex-wrap gap-4"
               >
                 <Link to="/profiles">
-                  <Button className="h-14 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-base font-medium transition-all hover:scale-105">
+                  <Button className="h-14 px-8 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 text-base font-medium transition-all hover:scale-105 shadow-lg hover:shadow-xl">
                     Browse Profiles
                   </Button>
                 </Link>
                 <Link to="/my-profile">
-                  <Button variant="outline" className="h-14 px-8 rounded-full border-neutralborder hover:bg-secondary text-base font-medium">
+                  <Button variant="outline" className="h-14 px-8 rounded-full border-2 border-neutralborder hover:bg-secondary text-base font-medium shadow-md hover:shadow-lg transition-all">
                     My Profile
                   </Button>
                 </Link>
@@ -142,12 +142,12 @@ export default function HomePage() {
               />
               
               {/* Floating Badge */}
-              <div className="absolute bottom-8 left-8 z-20 bg-white/90 backdrop-blur-md p-6 rounded-xl border border-white/20 max-w-xs">
+              <div className="absolute bottom-8 left-8 z-20 bg-white/95 backdrop-blur-md p-6 rounded-2xl border border-white/30 max-w-xs shadow-xl">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-3 h-3 rounded-full bg-primary animate-pulse" />
                   <span className="font-heading text-xs uppercase tracking-wider">Live Activity</span>
                 </div>
-                <p className="font-paragraph text-sm text-foreground">
+                <p className="font-paragraph text-sm text-foreground font-medium">
                   "Just swapped a Guitar lesson for a React coding session."
                 </p>
               </div>
@@ -165,19 +165,26 @@ export default function HomePage() {
           {/* Sticky Sidebar */}
           <div className="lg:w-1/3">
             <div className="sticky top-32">
-              <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-8 leading-none">
+              <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-8 leading-none tracking-wider">
                 The<br />Process
               </h2>
-              <p className="font-paragraph text-xl text-secondary-foreground mb-12 max-w-sm">
+              <p className="font-paragraph text-xl text-secondary-foreground mb-12 max-w-sm leading-relaxed">
                 A simple, transparent framework designed for seamless knowledge exchange.
               </p>
-              <div className="hidden lg:block w-full h-[1px] bg-neutralborder mb-8" />
-              <div className="hidden lg:flex flex-col gap-4">
+              <div className="hidden lg:block w-full h-[2px] bg-gradient-to-r from-primary to-transparent mb-8" />
+              <div className="hidden lg:flex flex-col gap-6">
                 {['Create Profile', 'Find Matches', 'Swap Sessions'].map((step, i) => (
-                  <div key={i} className="flex items-center gap-4 text-secondary-foreground/50">
-                    <span className="font-heading text-sm">0{i + 1}</span>
-                    <span className="font-heading text-lg uppercase">{step}</span>
-                  </div>
+                  <motion.div 
+                    key={i} 
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="flex items-center gap-4 text-secondary-foreground/70 hover:text-primary transition-colors"
+                  >
+                    <span className="font-heading text-sm font-bold">0{i + 1}</span>
+                    <span className="font-heading text-lg uppercase tracking-wider">{step}</span>
+                  </motion.div>
                 ))}
               </div>
             </div>
@@ -211,15 +218,20 @@ export default function HomePage() {
       </section>
 
       {/* BENEFITS - Full Bleed Parallax */}
-      <section className="w-full py-32 bg-secondary relative overflow-hidden">
+      <section className="w-full py-32 bg-gradient-to-b from-secondary to-secondary/50 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
            <WireframeGraphic />
         </div>
         
         <div className="max-w-[120rem] mx-auto px-4 md:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div>
-              <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-12">
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-12 tracking-wider">
                 Why Choose<br />SkillSwap?
               </h2>
               
@@ -228,23 +240,29 @@ export default function HomePage() {
                   title="No Currency Required" 
                   desc="Break free from financial barriers. Your knowledge is the only currency you need to access a world of new skills."
                 />
-                <div className="w-full h-[1px] bg-neutralborder" />
+                <div className="w-full h-[2px] bg-gradient-to-r from-neutralborder to-transparent" />
                 <BenefitRow 
                   title="Flexible Learning" 
                   desc="Learn at your own pace. Our scheduling system adapts to your life, not the other way around."
                 />
-                <div className="w-full h-[1px] bg-neutralborder" />
+                <div className="w-full h-[2px] bg-gradient-to-r from-neutralborder to-transparent" />
                 <BenefitRow 
                   title="Community Trust" 
                   desc="Verified profiles and a robust review system ensure a safe, professional, and productive environment."
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <div className="relative h-[600px] w-full">
+            <motion.div 
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="relative h-[600px] w-full"
+            >
                {/* Abstract Composition */}
                <motion.div 
-                 className="absolute top-0 right-0 w-3/4 h-3/4 bg-white rounded-[2rem] overflow-hidden shadow-xl z-10"
+                 className="absolute top-0 right-0 w-3/4 h-3/4 bg-white rounded-[2rem] overflow-hidden shadow-2xl z-10"
                  whileHover={{ scale: 1.02 }}
                  transition={{ duration: 0.5 }}
                >
@@ -255,18 +273,18 @@ export default function HomePage() {
                  />
                </motion.div>
                <motion.div 
-                 className="absolute bottom-0 left-0 w-2/3 h-2/3 bg-primary rounded-[2rem] overflow-hidden z-20 flex items-center justify-center p-8"
+                 className="absolute bottom-0 left-0 w-2/3 h-2/3 bg-primary rounded-[2rem] overflow-hidden z-20 flex items-center justify-center p-8 shadow-2xl"
                  initial={{ y: 50, opacity: 0 }}
                  whileInView={{ y: 0, opacity: 1 }}
                  viewport={{ once: true }}
                  transition={{ duration: 0.8 }}
                >
-                 <div className="text-primary-foreground">
-                   <h3 className="font-heading text-4xl uppercase mb-4">10k+</h3>
-                   <p className="font-paragraph text-lg">Active skill swaps happening right now across the globe.</p>
+                 <div className="text-primary-foreground text-center">
+                   <h3 className="font-heading text-5xl uppercase mb-4 tracking-wider">10k+</h3>
+                   <p className="font-paragraph text-lg leading-relaxed">Active skill swaps happening right now across the globe.</p>
                  </div>
                </motion.div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -278,23 +296,23 @@ export default function HomePage() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="bg-foreground text-background rounded-[3rem] p-12 md:p-24 relative overflow-hidden"
+          className="bg-gradient-to-br from-foreground to-foreground/90 text-background rounded-[3rem] p-12 md:p-24 relative overflow-hidden shadow-2xl"
         >
           {/* Decorative Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-full opacity-10">
-             <div className="absolute top-10 left-10 w-32 h-32 rounded-full border border-white" />
-             <div className="absolute bottom-10 right-10 w-64 h-64 rounded-full border border-white" />
+          <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+             <div className="absolute top-10 left-10 w-32 h-32 rounded-full border-2 border-white" />
+             <div className="absolute bottom-10 right-10 w-64 h-64 rounded-full border-2 border-white" />
           </div>
 
           <div className="relative z-10 max-w-4xl mx-auto">
-            <h2 className="font-heading text-5xl md:text-7xl uppercase mb-8">
+            <h2 className="font-heading text-5xl md:text-7xl uppercase mb-8 tracking-wider">
               Ready to Start<br />Your Journey?
             </h2>
-            <p className="font-paragraph text-xl text-neutral-400 mb-12">
+            <p className="font-paragraph text-xl text-neutral-300 mb-12 leading-relaxed">
               Join thousands of learners and teachers today. Share your expertise and unlock new possibilities.
             </p>
             <Link to="/profiles">
-              <Button className="h-20 px-12 rounded-full bg-primary text-primary-foreground hover:bg-white hover:text-foreground text-xl font-heading uppercase tracking-wide transition-all duration-300">
+              <Button className="h-20 px-12 rounded-full bg-primary text-primary-foreground hover:bg-white hover:text-foreground text-xl font-heading uppercase tracking-wide transition-all duration-300 shadow-lg hover:shadow-xl">
                 Start Learning Today
                 <ArrowRight className="ml-3 w-6 h-6" />
               </Button>
@@ -322,14 +340,14 @@ function WorkStepCard({ number, title, description, icon, image }: { number: str
       transition={{ duration: 0.8 }}
       className="group"
     >
-      <div className="flex items-baseline gap-4 mb-6">
-        <span className="font-heading text-primary text-xl">{number}</span>
-        <h3 className="font-heading text-4xl uppercase text-foreground">{title}</h3>
+      <div className="flex items-baseline gap-4 mb-8">
+        <span className="font-heading text-primary text-2xl font-bold">{number}</span>
+        <h3 className="font-heading text-4xl uppercase text-foreground tracking-wider">{title}</h3>
       </div>
       
       <div className="grid md:grid-cols-2 gap-8 items-start">
-        <div className="bg-secondary p-8 rounded-2xl h-full flex flex-col justify-between min-h-[300px] transition-colors duration-500 group-hover:bg-foreground group-hover:text-background">
-          <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center text-foreground mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
+        <div className="bg-gradient-to-br from-secondary to-secondary/70 p-8 rounded-2xl h-full flex flex-col justify-between min-h-[300px] transition-all duration-500 group-hover:from-foreground group-hover:to-foreground/90 group-hover:text-background shadow-lg group-hover:shadow-xl">
+          <div className="bg-background w-16 h-16 rounded-full flex items-center justify-center text-foreground mb-6 group-hover:bg-primary group-hover:text-white transition-all shadow-md">
             {icon}
           </div>
           <p className="font-paragraph text-lg leading-relaxed opacity-90">
@@ -340,7 +358,7 @@ function WorkStepCard({ number, title, description, icon, image }: { number: str
           </div>
         </div>
 
-        <div className="h-[300px] rounded-2xl overflow-hidden relative">
+        <div className="h-[300px] rounded-2xl overflow-hidden relative shadow-lg">
           <div className="absolute inset-0 bg-primary/20 group-hover:bg-transparent transition-colors duration-500 z-10" />
           <Image 
             src={image} 
@@ -355,18 +373,23 @@ function WorkStepCard({ number, title, description, icon, image }: { number: str
 
 function BenefitRow({ title, desc }: { title: string, desc: string }) {
   return (
-    <div className="group cursor-default">
+    <motion.div 
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 1, x: 0 }}
+      viewport={{ once: true }}
+      className="group cursor-default"
+    >
       <div className="flex items-start gap-4">
-        <CheckCircle2 className="w-6 h-6 text-primary mt-1 flex-shrink-0" />
+        <CheckCircle2 className="w-7 h-7 text-primary mt-1 flex-shrink-0 group-hover:scale-110 transition-transform" />
         <div>
-          <h4 className="font-heading text-2xl uppercase text-foreground mb-2 group-hover:text-primary transition-colors">
+          <h4 className="font-heading text-2xl uppercase text-foreground mb-2 group-hover:text-primary transition-colors tracking-wider">
             {title}
           </h4>
-          <p className="font-paragraph text-secondary-foreground text-lg max-w-md">
+          <p className="font-paragraph text-secondary-foreground text-lg max-w-md leading-relaxed">
             {desc}
           </p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

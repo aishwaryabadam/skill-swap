@@ -10,11 +10,11 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="w-full bg-primary sticky top-0 z-50">
-      <div className="max-w-[120rem] mx-auto px-8 md:px-16 py-6">
+    <header className="w-full bg-gradient-to-r from-primary to-primary/90 sticky top-0 z-50 shadow-lg">
+      <div className="max-w-[120rem] mx-auto px-8 md:px-16 py-5">
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link to="/" className="font-heading text-2xl md:text-3xl uppercase text-primary-foreground">
+          <Link to="/" className="font-heading text-2xl md:text-3xl uppercase text-primary-foreground tracking-wider hover:opacity-80 transition-opacity">
             SkillSwap
           </Link>
 
@@ -27,7 +27,7 @@ export default function Header() {
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-12 flex-1 justify-center">
             <Link 
               to="/" 
               className="font-paragraph text-base text-primary-foreground hover:underline transition-all"

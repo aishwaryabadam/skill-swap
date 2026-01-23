@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Link as LinkIcon, Trash2, Edit } from 'lucide-react';
+import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles } from '@/entities';
@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Image } from '@/components/ui/image';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import { format } from 'date-fns';
+import { format, isPast, isFuture } from 'date-fns';
 
 interface Session {
   _id: string;
@@ -170,6 +170,15 @@ export default function SessionsPage() {
     }
   };
 
+  const upcomingSessions = sessions.filter(s => {
+    if (s.sessionStatus === 'completed' || s.sessionStatus === 'cancelled') return false;
+    return s.scheduledDateTime ? isFuture(new Date(s.scheduledDateTime)) : false;
+  });
+
+  const completedSessions = sessions.filter(s => 
+    s.sessionStatus === 'completed' || (s.scheduledDateTime && isPast(new Date(s.scheduledDateTime)))
+  );
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -187,8 +196,8 @@ export default function SessionsPage() {
       <Header />
 
       {/* Hero Section */}
-      <section className="w-full bg-primary py-16">
-        <div className="max-w-[100rem] mx-auto px-8 md:px-16">
+      <section className="w-full bg-gradient-to-r from-primary to-primary/90 py-20 shadow-lg">
+        <div className="max-w-[120rem] mx-auto px-8 md:px-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,16 +205,16 @@ export default function SessionsPage() {
             className="flex items-center justify-between"
           >
             <div>
-              <h1 className="font-heading text-4xl md:text-5xl uppercase text-primary-foreground mb-4">
+              <h1 className="font-heading text-5xl md:text-6xl uppercase text-primary-foreground mb-4 tracking-wider">
                 My Sessions
               </h1>
-              <p className="font-paragraph text-lg text-primary-foreground">
-                Manage your skill-sharing sessions and Google Meet links
+              <p className="font-paragraph text-lg text-primary-foreground/90">
+                Manage your upcoming sessions and completed history
               </p>
             </div>
             <Button
               onClick={() => handleOpenDialog()}
-              className="bg-background text-foreground hover:bg-secondary h-12 px-8 font-paragraph"
+              className="bg-background text-foreground hover:bg-secondary h-12 px-8 font-paragraph shadow-lg hover:shadow-xl transition-all"
             >
               <Plus className="mr-2 h-4 w-4" />
               New Session
@@ -215,132 +224,122 @@ export default function SessionsPage() {
       </section>
 
       {/* Sessions Content */}
-      <section className="w-full max-w-[100rem] mx-auto px-8 md:px-16 py-16">
-        <div className="min-h-[600px]">
-          {sessions.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-center py-20 bg-secondary p-12 rounded-sm"
+      <section className="w-full max-w-[120rem] mx-auto px-8 md:px-16 py-20">
+        {sessions.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-24 bg-gradient-to-br from-secondary to-secondary/50 p-16 rounded-2xl border-2 border-neutralborder"
+          >
+            <Calendar className="w-16 h-16 text-primary mx-auto mb-6 opacity-50" />
+            <h2 className="font-heading text-4xl uppercase text-foreground mb-4">
+              No Sessions Yet
+            </h2>
+            <p className="font-paragraph text-lg text-secondary-foreground mb-10 max-w-md mx-auto">
+              Create a new session to schedule a skill-sharing meeting with Google Meet.
+            </p>
+            <Button
+              onClick={() => handleOpenDialog()}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 font-paragraph shadow-lg hover:shadow-xl transition-all"
             >
-              <h2 className="font-heading text-3xl uppercase text-foreground mb-4">
-                No Sessions Yet
-              </h2>
-              <p className="font-paragraph text-lg text-secondary-foreground mb-8">
-                Create a new session to schedule a skill-sharing meeting with Google Meet.
-              </p>
-              <Button
-                onClick={() => handleOpenDialog()}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 font-paragraph"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Create Your First Session
-              </Button>
-            </motion.div>
-          ) : (
-            <div className="space-y-6">
-              {sessions.map((session, index) => {
-                const otherUserId = session.hostId === member?.loginEmail ? session.participantId : session.hostId;
-                const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
+              <Plus className="mr-2 h-4 w-4" />
+              Create Your First Session
+            </Button>
+          </motion.div>
+        ) : (
+          <div className="space-y-16">
+            {/* Upcoming Sessions */}
+            <div>
+              <div className="flex items-center gap-3 mb-8">
+                <Clock className="w-8 h-8 text-primary" />
+                <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                  Upcoming Sessions
+                </h2>
+                <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                  {upcomingSessions.length}
+                </span>
+              </div>
+              
+              {upcomingSessions.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                >
+                  <p className="font-paragraph text-lg text-secondary-foreground">
+                    No upcoming sessions scheduled. Create one to get started!
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="grid gap-6">
+                  {upcomingSessions.map((session, index) => {
+                    const otherUserId = session.hostId === member?.loginEmail ? session.participantId : session.hostId;
+                    const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
 
-                return (
-                  <motion.div
-                    key={session._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
-                  >
-                    <div className="grid md:grid-cols-4 gap-8">
-                      {/* Participant Profile */}
-                      <div className="md:col-span-1">
-                        <div className="w-full aspect-square bg-primary/10 rounded-sm overflow-hidden">
-                          {otherUser?.profilePicture ? (
-                            <Image
-                              src={otherUser.profilePicture}
-                              alt={otherUser.fullName || 'Participant'}
-                              className="w-full h-full object-cover"
-                              width={300}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <span className="font-heading text-6xl text-primary uppercase">
-                                {otherUser?.fullName?.charAt(0) || '?'}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Session Details */}
-                      <div className="md:col-span-3">
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <h3 className="font-heading text-2xl uppercase text-foreground mb-2">
-                              {otherUser?.fullName || 'Session'}
-                            </h3>
-                            <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-sm text-sm font-paragraph ${getStatusColor(session.sessionStatus)}`}>
-                              {session.sessionStatus?.charAt(0).toUpperCase() + session.sessionStatus?.slice(1) || 'Scheduled'}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Session Info */}
-                        <div className="space-y-4 mb-6">
-                          <div className="flex items-center gap-3">
-                            <Calendar className="h-5 w-5 text-primary" />
-                            <div>
-                              <p className="font-heading text-sm uppercase text-foreground">Scheduled Date & Time</p>
-                              <p className="font-paragraph text-base text-secondary-foreground">
-                                {session.scheduledDateTime ? format(new Date(session.scheduledDateTime), 'MMM dd, yyyy - HH:mm') : 'Not set'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {session.googleMeetLink && (
-                            <div className="flex items-start gap-3">
-                              <LinkIcon className="h-5 w-5 text-primary mt-1" />
-                              <div className="flex-1">
-                                <p className="font-heading text-sm uppercase text-foreground">Google Meet Link</p>
-                                <a
-                                  href={session.googleMeetLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-paragraph text-base text-primary hover:underline break-all"
-                                >
-                                  {session.googleMeetLink}
-                                </a>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action Buttons */}
-                        <div className="flex gap-3">
-                          <Button
-                            onClick={() => handleOpenDialog(session)}
-                            className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph"
-                          >
-                            <Edit className="mr-2 h-4 w-4" />
-                            Edit
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteSession(session._id)}
-                            variant="outline"
-                            className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-11 px-6 font-paragraph"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                    return (
+                      <SessionCard
+                        key={session._id}
+                        session={session}
+                        otherUser={otherUser}
+                        member={member}
+                        index={index}
+                        onEdit={handleOpenDialog}
+                        onDelete={handleDeleteSession}
+                        getStatusColor={getStatusColor}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* Completed Sessions */}
+            <div className="pt-8 border-t-2 border-neutralborder">
+              <div className="flex items-center gap-3 mb-8">
+                <CheckCircle className="w-8 h-8 text-primary" />
+                <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                  Completed History
+                </h2>
+                <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                  {completedSessions.length}
+                </span>
+              </div>
+              
+              {completedSessions.length === 0 ? (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                >
+                  <p className="font-paragraph text-lg text-secondary-foreground">
+                    No completed sessions yet. Your history will appear here.
+                  </p>
+                </motion.div>
+              ) : (
+                <div className="grid gap-6">
+                  {completedSessions.map((session, index) => {
+                    const otherUserId = session.hostId === member?.loginEmail ? session.participantId : session.hostId;
+                    const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
+
+                    return (
+                      <SessionCard
+                        key={session._id}
+                        session={session}
+                        otherUser={otherUser}
+                        member={member}
+                        index={index}
+                        onEdit={handleOpenDialog}
+                        onDelete={handleDeleteSession}
+                        getStatusColor={getStatusColor}
+                        isCompleted
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Session Dialog */}
@@ -437,5 +436,119 @@ export default function SessionsPage() {
 
       <Footer />
     </div>
+  );
+}
+
+// SessionCard Component
+function SessionCard({ 
+  session, 
+  otherUser, 
+  member, 
+  index, 
+  onEdit, 
+  onDelete, 
+  getStatusColor,
+  isCompleted = false 
+}: any) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className={`p-8 rounded-2xl border-2 transition-all hover:shadow-lg ${
+        isCompleted 
+          ? 'bg-gradient-to-br from-secondary/50 to-secondary/30 border-neutralborder/50' 
+          : 'bg-gradient-to-br from-secondary to-secondary/70 border-primary/20 hover:border-primary/40'
+      }`}
+    >
+      <div className="grid md:grid-cols-4 gap-8">
+        {/* Participant Profile */}
+        <div className="md:col-span-1">
+          <div className="w-full aspect-square bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl overflow-hidden shadow-md">
+            {otherUser?.profilePicture ? (
+              <Image
+                src={otherUser.profilePicture}
+                alt={otherUser.fullName || 'Participant'}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                width={300}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary to-primary/70">
+                <span className="font-heading text-6xl text-primary-foreground uppercase">
+                  {otherUser?.fullName?.charAt(0) || '?'}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Session Details */}
+        <div className="md:col-span-3">
+          <div className="flex items-start justify-between mb-6">
+            <div>
+              <h3 className="font-heading text-2xl md:text-3xl uppercase text-foreground mb-3">
+                {otherUser?.fullName || 'Session'}
+              </h3>
+              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-heading tracking-wider ${getStatusColor(session.sessionStatus)}`}>
+                {session.sessionStatus?.charAt(0).toUpperCase() + session.sessionStatus?.slice(1) || 'Scheduled'}
+              </span>
+            </div>
+          </div>
+
+          {/* Session Info */}
+          <div className="space-y-5 mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                <Calendar className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">Scheduled Date & Time</p>
+                <p className="font-paragraph text-base text-foreground font-medium">
+                  {session.scheduledDateTime ? format(new Date(session.scheduledDateTime), 'MMM dd, yyyy - HH:mm') : 'Not set'}
+                </p>
+              </div>
+            </div>
+
+            {session.googleMeetLink && (
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
+                  <LinkIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">Google Meet Link</p>
+                  <a
+                    href={session.googleMeetLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-paragraph text-base text-primary hover:underline break-all font-medium"
+                  >
+                    {session.googleMeetLink}
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 flex-wrap">
+            <Button
+              onClick={() => onEdit(session)}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              onClick={() => onDelete(session._id)}
+              variant="outline"
+              className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-11 px-6 font-paragraph font-medium transition-all"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }
