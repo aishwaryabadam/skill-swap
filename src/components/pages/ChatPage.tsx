@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, ArrowLeft } from 'lucide-react';
+import { Send, ArrowLeft, Paperclip, X } from 'lucide-react';
 import { useParams, Link } from 'react-router-dom';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
@@ -30,7 +30,10 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [messageText, setMessageText] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadChatData();
@@ -101,26 +104,56 @@ export default function ChatPage() {
   };
 
   const handleSendMessage = async () => {
-    if (!messageText.trim() || !member?.loginEmail || !id) return;
+    if ((!messageText.trim() && !selectedFile) || !member?.loginEmail || !id) return;
 
     try {
       setIsSending(true);
+      
+      // For now, we'll store file info as text. In production, you'd upload to cloud storage
+      let fileData = '';
+      if (selectedFile) {
+        // Create a simple file reference (in production, upload to cloud storage like Wix Media)
+        fileData = `[FILE: ${selectedFile.name} (${selectedFile.type})]`;
+      }
+
+      const finalContent = fileData ? `${messageText}\n${fileData}` : messageText;
+
       await BaseCrudService.create('chatmessages', {
         _id: crypto.randomUUID(),
         senderId: member.loginEmail,
         recipientId: id,
-        content: messageText,
+        content: finalContent,
         timestamp: new Date(),
         isRead: false
       });
 
       setMessageText('');
+      setSelectedFile(null);
+      setFilePreview('');
       await loadMessages();
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Failed to send message. Please try again.');
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setFilePreview(event.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setFilePreview('');
+      }
     }
   };
 
@@ -214,6 +247,36 @@ export default function ChatPage() {
       {/* Message Input */}
       <div className="bg-secondary border-t-2 border-neutralborder py-6">
         <div className="max-w-[100rem] mx-auto px-8 md:px-16">
+          {/* File Preview */}
+          {selectedFile && (
+            <div className="mb-4 p-4 bg-primary/10 rounded-sm border-2 border-primary/20 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {filePreview ? (
+                  <div className="w-12 h-12 rounded-sm overflow-hidden">
+                    <Image src={filePreview} alt="preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <Paperclip className="h-6 w-6 text-primary" />
+                )}
+                <div>
+                  <p className="font-paragraph text-sm font-medium text-foreground">{selectedFile.name}</p>
+                  <p className="font-paragraph text-xs text-secondary-foreground">
+                    {(selectedFile.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setSelectedFile(null);
+                  setFilePreview('');
+                }}
+                className="p-2 hover:bg-primary/20 rounded-sm transition-colors"
+              >
+                <X className="h-4 w-4 text-primary" />
+              </button>
+            </div>
+          )}
+          
           <div className="flex gap-3">
             <Input
               type="text"
@@ -229,9 +292,24 @@ export default function ChatPage() {
               className="flex-1 font-paragraph h-12"
               disabled={isSending}
             />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,image/*"
+            />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              variant="outline"
+              className="border-2 border-foreground text-foreground hover:bg-secondary h-12 px-4 font-paragraph"
+              disabled={isSending}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <Button
               onClick={handleSendMessage}
-              disabled={isSending || !messageText.trim()}
+              disabled={isSending || (!messageText.trim() && !selectedFile)}
               className="bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 font-paragraph"
             >
               <Send className="h-4 w-4" />

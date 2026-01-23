@@ -88,6 +88,31 @@ export interface SwapRequests {
 
 
 /**
+ * Collection ID: tests
+ * Interface for SessionTests
+ */
+export interface SessionTests {
+  _id: string;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+  /** @wixFieldType text */
+  testTitle?: string;
+  /** @wixFieldType text */
+  sessionId?: string;
+  /** @wixFieldType text */
+  tutorId?: string;
+  /** @wixFieldType text */
+  questions?: string;
+  /** @wixFieldType text */
+  learnerSubmissions?: string;
+  /** @wixFieldType number */
+  score?: number;
+  /** @wixFieldType datetime */
+  submissionDate?: Date | string;
+}
+
+
+/**
  * Collection ID: userprofiles
  * Interface for UserProfiles
  */

@@ -33,11 +33,14 @@ export default function ReviewsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, UserProfiles>>({});
+  const [revieweeProfiles, setRevieweeProfiles] = useState<Record<string, UserProfiles>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [availableProfiles, setAvailableProfiles] = useState<UserProfiles[]>([]);
   const [formData, setFormData] = useState({
     rating: 5,
     comment: '',
     revieweeId: '',
+    revieweeName: '',
     sessionId: ''
   });
 
@@ -46,32 +49,48 @@ export default function ReviewsPage() {
   }, [member]);
 
   const loadReviews = async () => {
-    if (!member?.loginEmail) return;
+    if (!member?._id) return;
 
     try {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<Review>('reviews', {}, { limit: 1000 });
+      const profilesResult = await BaseCrudService.getAll<UserProfiles>('userprofiles', {}, { limit: 1000 });
 
-      // Filter reviews
-      const received = result.items.filter(review => review.revieweeId === member.loginEmail);
-      const given = result.items.filter(review => review.reviewerId === member.loginEmail);
+      // Filter reviews - use member's _id
+      const received = result.items.filter(review => review.revieweeId === member._id);
+      const given = result.items.filter(review => review.reviewerId === member._id);
 
       setReceivedReviews(received);
       setGivenReviews(given);
+      setAvailableProfiles(profilesResult.items.filter(p => p._id !== member._id));
 
-      // Load reviewer profiles
-      const profiles: Record<string, UserProfiles> = {};
+      // Load reviewer profiles for received reviews
+      const reviewerProfs: Record<string, UserProfiles> = {};
       for (const review of received) {
-        if (review.reviewerId && !profiles[review.reviewerId]) {
+        if (review.reviewerId && !reviewerProfs[review.reviewerId]) {
           try {
             const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', review.reviewerId);
-            profiles[review.reviewerId] = profile;
+            reviewerProfs[review.reviewerId] = profile;
           } catch (error) {
             console.error('Error loading profile:', error);
           }
         }
       }
-      setReviewerProfiles(profiles);
+      setReviewerProfiles(reviewerProfs);
+
+      // Load reviewee profiles for given reviews
+      const revieweeProfs: Record<string, UserProfiles> = {};
+      for (const review of given) {
+        if (review.revieweeId && !revieweeProfs[review.revieweeId]) {
+          try {
+            const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', review.revieweeId);
+            revieweeProfs[review.revieweeId] = profile;
+          } catch (error) {
+            console.error('Error loading profile:', error);
+          }
+        }
+      }
+      setRevieweeProfiles(revieweeProfs);
     } catch (error) {
       console.error('Error loading reviews:', error);
     } finally {
@@ -84,14 +103,15 @@ export default function ReviewsPage() {
       rating: 5,
       comment: '',
       revieweeId: '',
+      revieweeName: '',
       sessionId: ''
     });
     setIsDialogOpen(true);
   };
 
   const handleSaveReview = async () => {
-    if (!member?.loginEmail || !formData.revieweeId) {
-      alert('Please fill in all required fields');
+    if (!member?._id || !formData.revieweeId) {
+      alert('Please select a tutor to review');
       return;
     }
 
@@ -101,7 +121,7 @@ export default function ReviewsPage() {
         _id: crypto.randomUUID(),
         rating: formData.rating,
         comment: formData.comment,
-        reviewerId: member.loginEmail,
+        reviewerId: member._id,
         revieweeId: formData.revieweeId,
         sessionId: formData.sessionId || undefined
       });
@@ -307,43 +327,58 @@ export default function ReviewsPage() {
             </div>
           ) : (
             <div className="space-y-6">
-              {givenReviews.map((review, index) => (
-                <motion.div
-                  key={review._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-heading text-xl uppercase text-foreground mb-2">
-                        Review for {review.revieweeId}
-                      </h3>
-                      <p className="font-paragraph text-sm text-secondary-foreground">
-                        {review._createdDate ? format(new Date(review._createdDate), 'MMM dd, yyyy') : 'Recently'}
-                      </p>
+              {givenReviews.map((review, index) => {
+                const reviewee = revieweeProfiles[review.revieweeId || ''];
+                return (
+                  <motion.div
+                    key={review._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        {reviewee?.profilePicture && (
+                          <div className="w-16 h-16 rounded-full overflow-hidden bg-primary/10">
+                            <Image
+                              src={reviewee.profilePicture}
+                              alt={reviewee.fullName || 'Tutor'}
+                              className="w-full h-full object-cover"
+                              width={64}
+                            />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-heading text-xl uppercase text-foreground mb-2">
+                            {reviewee?.fullName || 'Unknown Tutor'}
+                          </h3>
+                          <p className="font-paragraph text-sm text-secondary-foreground">
+                            {review._createdDate ? format(new Date(review._createdDate), 'MMM dd, yyyy') : 'Recently'}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleDeleteReview(review._id)}
+                        variant="outline"
+                        className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-10 px-4 font-paragraph"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <Button
-                      onClick={() => handleDeleteReview(review._id)}
-                      variant="outline"
-                      className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-10 px-4 font-paragraph"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
 
-                  <div className="mb-4">
-                    {renderStars(review.rating || 0)}
-                  </div>
+                    <div className="mb-4">
+                      {renderStars(review.rating || 0)}
+                    </div>
 
-                  {review.comment && (
-                    <p className="font-paragraph text-base text-secondary-foreground leading-relaxed">
-                      {review.comment}
-                    </p>
-                  )}
-                </motion.div>
-              ))}
+                    {review.comment && (
+                      <p className="font-paragraph text-base text-secondary-foreground leading-relaxed">
+                        {review.comment}
+                      </p>
+                    )}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -361,18 +396,32 @@ export default function ReviewsPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Reviewee ID */}
+            {/* Tutor Selection */}
             <div>
               <Label htmlFor="revieweeId" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                Reviewer Email/ID
+                Select Tutor
               </Label>
-              <Input
+              <select
                 id="revieweeId"
                 value={formData.revieweeId}
-                onChange={(e) => setFormData(prev => ({ ...prev, revieweeId: e.target.value }))}
-                placeholder="Enter person's email or ID"
-                className="font-paragraph h-11"
-              />
+                onChange={(e) => {
+                  const selectedId = e.target.value;
+                  const selectedProfile = availableProfiles.find(p => p._id === selectedId);
+                  setFormData(prev => ({
+                    ...prev,
+                    revieweeId: selectedId,
+                    revieweeName: selectedProfile?.fullName || ''
+                  }));
+                }}
+                className="w-full font-paragraph h-11 px-3 border border-neutralborder rounded-sm"
+              >
+                <option value="">Choose a tutor...</option>
+                {availableProfiles.map(profile => (
+                  <option key={profile._id} value={profile._id}>
+                    {profile.fullName}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Rating */}

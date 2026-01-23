@@ -11,6 +11,7 @@ import IncomingSwapRequestsPage from '@/components/pages/IncomingSwapRequestsPag
 import ChatPage from '@/components/pages/ChatPage';
 import SessionsPage from '@/components/pages/SessionsPage';
 import ReviewsPage from '@/components/pages/ReviewsPage';
+import TestsPage from '@/components/pages/TestsPage';
 
 // Layout component that includes ScrollToTop
 function Layout() {
@@ -102,6 +103,17 @@ const router = createBrowserRouter([
         ),
         routeMetadata: {
           pageIdentifier: 'reviews',
+        },
+      },
+      {
+        path: "tests",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to manage tests">
+            <TestsPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'tests',
         },
       },
       {
