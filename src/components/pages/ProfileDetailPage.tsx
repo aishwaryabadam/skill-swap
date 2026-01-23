@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle, MessageCircle, Star } from 'lucide-react';
 import { BaseCrudService } from '@/integrations';
-import { UserProfiles } from '@/entities';
+import { UserProfiles, Reviews } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Image } from '@/components/ui/image';
@@ -22,6 +22,7 @@ export default function ProfileDetailPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, UserProfiles>>({});
 
   useEffect(() => {
     loadProfile();
@@ -35,10 +36,24 @@ export default function ProfileDetailPage() {
       const data = await BaseCrudService.getById<UserProfiles>('userprofiles', id);
       setProfile(data);
       
-      // Load reviews for this profile
+      // Load reviews for this profile (where they are the reviewee)
       const reviewsResult = await BaseCrudService.getAll<Reviews>('reviews', {}, { limit: 1000 });
       const profileReviews = reviewsResult.items.filter(review => review.revieweeId === id);
       setReviews(profileReviews);
+
+      // Load reviewer profiles for display
+      const profiles: Record<string, UserProfiles> = {};
+      for (const review of profileReviews) {
+        if (review.reviewerId && !profiles[review.reviewerId]) {
+          try {
+            const reviewerProfile = await BaseCrudService.getById<UserProfiles>('userprofiles', review.reviewerId);
+            profiles[review.reviewerId] = reviewerProfile;
+          } catch (error) {
+            console.error('Error loading reviewer profile:', error);
+          }
+        }
+      }
+      setReviewerProfiles(profiles);
     } catch (error) {
       console.error('Error loading profile:', error);
     } finally {
@@ -190,6 +205,21 @@ export default function ProfileDetailPage() {
                       </p>
                     </div>
                   )}
+
+                  {profile.availabilityDays && (
+                    <div className="bg-secondary p-6 rounded-sm mb-8">
+                      <h3 className="font-heading text-lg uppercase text-foreground mb-3">
+                        Available Days
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.availabilityDays.split(',').map(day => (
+                          <span key={day.trim()} className="inline-block px-3 py-1 bg-primary/10 text-primary text-sm rounded-sm font-paragraph">
+                            {day.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -276,46 +306,61 @@ export default function ProfileDetailPage() {
 
                   {/* Individual Reviews */}
                   <div className="space-y-6">
-                    {reviews.map((review, index) => (
-                      <motion.div
-                        key={review._id}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-                        className="bg-secondary p-6 rounded-sm border-2 border-neutralborder"
-                      >
-                        <div className="flex items-start justify-between mb-4">
-                          <div>
-                            <p className="font-heading text-sm uppercase text-secondary-foreground mb-1">
-                              Reviewed by: {review.reviewerId}
-                            </p>
-                            <p className="font-paragraph text-sm text-secondary-foreground">
-                              {review._createdDate ? new Date(review._createdDate).toLocaleDateString() : 'Recently'}
-                            </p>
+                    {reviews.map((review, index) => {
+                      const reviewer = reviewerProfiles[review.reviewerId || ''];
+                      return (
+                        <motion.div
+                          key={review._id}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
+                          className="bg-secondary p-6 rounded-sm border-2 border-neutralborder"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              {reviewer?.profilePicture && (
+                                <div className="w-12 h-12 rounded-full overflow-hidden bg-primary/10">
+                                  <Image
+                                    src={reviewer.profilePicture}
+                                    alt={reviewer.fullName || 'Reviewer'}
+                                    className="w-full h-full object-cover"
+                                    width={48}
+                                  />
+                                </div>
+                              )}
+                              <div>
+                                <p className="font-heading text-sm uppercase text-foreground">
+                                  {reviewer?.fullName || 'Anonymous Reviewer'}
+                                </p>
+                                <p className="font-paragraph text-sm text-secondary-foreground">
+                                  {review._createdDate ? new Date(review._createdDate).toLocaleDateString() : 'Recently'}
+                                </p>
+                              </div>
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Rating Stars */}
-                        <div className="flex gap-1 mb-4">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`h-4 w-4 ${
-                                star <= (review.rating || 0)
-                                  ? 'fill-primary text-primary'
-                                  : 'text-neutralborder'
-                              }`}
-                            />
-                          ))}
-                        </div>
+                          {/* Rating Stars */}
+                          <div className="flex gap-1 mb-4">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <Star
+                                key={star}
+                                className={`h-4 w-4 ${
+                                  star <= (review.rating || 0)
+                                    ? 'fill-primary text-primary'
+                                    : 'text-neutralborder'
+                                }`}
+                              />
+                            ))}
+                          </div>
 
-                        {review.comment && (
-                          <p className="font-paragraph text-base text-secondary-foreground leading-relaxed">
-                            {review.comment}
-                          </p>
-                        )}
-                      </motion.div>
-                    ))}
+                          {review.comment && (
+                            <p className="font-paragraph text-base text-secondary-foreground leading-relaxed">
+                              {review.comment}
+                            </p>
+                          )}
+                        </motion.div>
+                      );
+                    })}
                   </div>
                 </motion.div>
               )}

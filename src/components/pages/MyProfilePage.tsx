@@ -31,7 +31,8 @@ export default function MyProfilePage() {
     availabilityDays: '',
     instagramId: '',
     linkedinUrl: '',
-    githubId: ''
+    githubId: '',
+    _id: ''
   });
 
   const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -70,9 +71,11 @@ export default function MyProfilePage() {
           skillsToLearn: userProfile.skillsToLearn || '',
           isAvailable: userProfile.isAvailable ?? true,
           availabilityDetails: userProfile.availabilityDetails || '',
+          availabilityDays: userProfile.availabilityDays || '',
           instagramId: userProfile.instagramId || '',
           linkedinUrl: userProfile.linkedinUrl || '',
-          githubId: userProfile.githubId || ''
+          githubId: userProfile.githubId || '',
+          _id: userProfile._id
         });
       } else {
         setFormData(prev => (({
@@ -127,7 +130,8 @@ export default function MyProfilePage() {
         availabilityDays: profile.availabilityDays || '',
         instagramId: profile.instagramId || '',
         linkedinUrl: profile.linkedinUrl || '',
-        githubId: profile.githubId || ''
+        githubId: profile.githubId || '',
+        _id: profile._id
       });
     }
     setIsEditing(false);
