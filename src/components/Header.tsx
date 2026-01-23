@@ -19,7 +19,15 @@ export default function Header() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
+          {/* Mobile Menu Button */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden text-primary-foreground"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        <nav className="hidden md:flex items-center gap-8">
             <Link 
               to="/" 
               className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
@@ -75,15 +83,7 @@ export default function Header() {
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden text-primary-foreground"
-            aria-label="Toggle menu"
-          >
-            {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
-        </div>
+          </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
