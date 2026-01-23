@@ -8,6 +8,9 @@ import ProfilesPage from '@/components/pages/ProfilesPage';
 import ProfileDetailPage from '@/components/pages/ProfileDetailPage';
 import MyProfilePage from '@/components/pages/MyProfilePage';
 import IncomingSwapRequestsPage from '@/components/pages/IncomingSwapRequestsPage';
+import ChatPage from '@/components/pages/ChatPage';
+import SessionsPage from '@/components/pages/SessionsPage';
+import ReviewsPage from '@/components/pages/ReviewsPage';
 
 // Layout component that includes ScrollToTop
 function Layout() {
@@ -66,6 +69,39 @@ const router = createBrowserRouter([
         ),
         routeMetadata: {
           pageIdentifier: 'incoming-requests',
+        },
+      },
+      {
+        path: "chat/:id",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to chat with other users">
+            <ChatPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'chat',
+        },
+      },
+      {
+        path: "sessions",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to manage your sessions">
+            <SessionsPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'sessions',
+        },
+      },
+      {
+        path: "reviews",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to view and leave reviews">
+            <ReviewsPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'reviews',
         },
       },
       {

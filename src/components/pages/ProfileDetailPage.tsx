@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle, MessageCircle } from 'lucide-react';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles } from '@/entities';
 import { Button } from '@/components/ui/button';
@@ -238,16 +238,26 @@ export default function ProfileDetailPage() {
                   Connect with {profile.fullName?.split(' ')[0] || 'this user'} to discuss potential skill exchange opportunities.
                 </p>
                 {isAuthenticated ? (
-                  <Button 
-                    onClick={() => setIsDialogOpen(true)}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base font-paragraph"
-                  >
-                    <Mail className="mr-2 h-5 w-5" />
-                    Send Swap Request
-                  </Button>
+                  <div className="flex gap-4 justify-center flex-wrap">
+                    <Button 
+                      onClick={() => setIsDialogOpen(true)}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base font-paragraph"
+                    >
+                      <Mail className="mr-2 h-5 w-5" />
+                      Send Swap Request
+                    </Button>
+                    <Link to={`/chat/${id}`}>
+                      <Button 
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 h-14 px-10 text-base font-paragraph"
+                      >
+                        <MessageCircle className="mr-2 h-5 w-5" />
+                        Send Message
+                      </Button>
+                    </Link>
+                  </div>
                 ) : (
                   <p className="font-paragraph text-base text-secondary-foreground">
-                    Sign in to send a swap request
+                    Sign in to send a swap request or message
                   </p>
                 )}
               </motion.div>

@@ -27,7 +27,10 @@ export default function MyProfilePage() {
     skillsToTeach: '',
     skillsToLearn: '',
     isAvailable: true,
-    availabilityDetails: ''
+    availabilityDetails: '',
+    instagramId: '',
+    linkedinUrl: '',
+    githubId: ''
   });
 
   useEffect(() => {
@@ -51,13 +54,16 @@ export default function MyProfilePage() {
           skillsToTeach: userProfile.skillsToTeach || '',
           skillsToLearn: userProfile.skillsToLearn || '',
           isAvailable: userProfile.isAvailable ?? true,
-          availabilityDetails: userProfile.availabilityDetails || ''
+          availabilityDetails: userProfile.availabilityDetails || '',
+          instagramId: userProfile.instagramId || '',
+          linkedinUrl: userProfile.linkedinUrl || '',
+          githubId: userProfile.githubId || ''
         });
       } else {
-        setFormData(prev => ({
+        setFormData(prev => (({
           ...prev,
           fullName: member.profile?.nickname || member.contact?.firstName || ''
-        }));
+        })));
       }
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -102,7 +108,10 @@ export default function MyProfilePage() {
         skillsToTeach: profile.skillsToTeach || '',
         skillsToLearn: profile.skillsToLearn || '',
         isAvailable: profile.isAvailable ?? true,
-        availabilityDetails: profile.availabilityDetails || ''
+        availabilityDetails: profile.availabilityDetails || '',
+        instagramId: profile.instagramId || '',
+        linkedinUrl: profile.linkedinUrl || '',
+        githubId: profile.githubId || ''
       });
     }
     setIsEditing(false);
@@ -263,6 +272,53 @@ export default function MyProfilePage() {
                         placeholder="e.g., Weekday evenings, Weekend mornings..."
                       />
                     </div>
+
+                    {/* Social Media Section */}
+                    <div className="border-t-2 border-neutralborder pt-6 mt-6">
+                      <h3 className="font-heading text-lg uppercase text-foreground mb-6">Social Media & Links</h3>
+                      
+                      {/* Instagram ID */}
+                      <div className="mb-6">
+                        <Label htmlFor="instagramId" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                          Instagram ID
+                        </Label>
+                        <Input
+                          id="instagramId"
+                          value={formData.instagramId}
+                          onChange={(e) => setFormData(prev => ({ ...prev, instagramId: e.target.value }))}
+                          className="font-paragraph h-12"
+                          placeholder="@yourusername"
+                        />
+                      </div>
+
+                      {/* LinkedIn URL */}
+                      <div className="mb-6">
+                        <Label htmlFor="linkedinUrl" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                          LinkedIn URL
+                        </Label>
+                        <Input
+                          id="linkedinUrl"
+                          value={formData.linkedinUrl}
+                          onChange={(e) => setFormData(prev => ({ ...prev, linkedinUrl: e.target.value }))}
+                          className="font-paragraph h-12"
+                          placeholder="https://linkedin.com/in/yourprofile"
+                        />
+                      </div>
+
+                      {/* GitHub ID */}
+                      <div>
+                        <Label htmlFor="githubId" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                          GitHub ID
+                        </Label>
+                        <Input
+                          id="githubId"
+                          value={formData.githubId}
+                          onChange={(e) => setFormData(prev => ({ ...prev, githubId: e.target.value }))}
+                          className="font-paragraph h-12"
+                          placeholder="yourusername"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   {/* Action Buttons */}
@@ -370,6 +426,47 @@ export default function MyProfilePage() {
                       </div>
                     )}
                   </div>
+
+                  {/* Social Media Links */}
+                  {(formData.instagramId || formData.linkedinUrl || formData.githubId) && (
+                    <div className="mt-8 pt-8 border-t-2 border-neutralborder">
+                      <h3 className="font-heading text-lg uppercase text-foreground mb-4">
+                        Connect With Me
+                      </h3>
+                      <div className="flex gap-4 flex-wrap">
+                        {formData.instagramId && (
+                          <a
+                            href={`https://instagram.com/${formData.instagramId.replace('@', '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block px-4 py-2 bg-secondary rounded-sm text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-paragraph text-sm"
+                          >
+                            Instagram: {formData.instagramId}
+                          </a>
+                        )}
+                        {formData.linkedinUrl && (
+                          <a
+                            href={formData.linkedinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block px-4 py-2 bg-secondary rounded-sm text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-paragraph text-sm"
+                          >
+                            LinkedIn Profile
+                          </a>
+                        )}
+                        {formData.githubId && (
+                          <a
+                            href={`https://github.com/${formData.githubId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-block px-4 py-2 bg-secondary rounded-sm text-primary hover:bg-primary hover:text-primary-foreground transition-colors font-paragraph text-sm"
+                          >
+                            GitHub: {formData.githubId}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {!formData.skillsToTeach && !formData.skillsToLearn && !formData.bio && (
                     <div className="bg-secondary p-8 rounded-sm text-center">

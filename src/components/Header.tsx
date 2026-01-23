@@ -67,6 +67,18 @@ export default function Header() {
                   Requests
                 </Link>
                 <Link 
+                  to="/sessions" 
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Sessions
+                </Link>
+                <Link 
+                  to="/reviews" 
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Reviews
+                </Link>
+                <Link 
                   to="/my-profile" 
                   className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
                 >
@@ -132,6 +144,20 @@ export default function Header() {
                   className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
                 >
                   Requests
+                </Link>
+                <Link 
+                  to="/sessions" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Sessions
+                </Link>
+                <Link 
+                  to="/reviews" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+                >
+                  Reviews
                 </Link>
                 <Link 
                   to="/my-profile" 
