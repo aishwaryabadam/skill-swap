@@ -28,6 +28,7 @@ interface Test {
   testTitle?: string;
   sessionId?: string;
   tutorId?: string;
+  learnerProfileId?: string;
   questions?: string;
   learnerSubmissions?: string;
   score?: number;
@@ -87,21 +88,19 @@ export default function TestsPage() {
     try {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<Test>('tests', {}, { limit: 1000 });
-      const sessionsResult = await BaseCrudService.getAll<Sessions>('sessions', {}, { limit: 1000 });
 
       // Filter tests based on user role:
       // - If tutor: show tests they created
-      // - If learner: show only tests for sessions they attended (participantId matches)
+      // - If learner: show only tests where learnerProfileId matches their ID
       const userTests = result.items.filter(test => {
         if (test.tutorId === member._id) {
           // Tutor sees all tests they created
           return true;
         }
         
-        // For learners, find the session and check if they're the participant
-        const session = sessionsResult.items.find(s => s._id === test.sessionId);
-        if (session && session.participantId === member._id) {
-          // Learner sees tests only for sessions they attended
+        // For learners, check if they're the learnerProfileId
+        if (test.learnerProfileId === member._id) {
+          // Learner sees tests assigned to them
           return true;
         }
         
@@ -109,15 +108,26 @@ export default function TestsPage() {
       });
 
       setTests(userTests);
+      
+      // Load sessions for tutor view
+      const sessionsResult = await BaseCrudService.getAll<Sessions>('sessions', {}, { limit: 1000 });
       setSessions(sessionsResult.items.filter(s => s.hostId === member._id || s.participantId === member._id));
 
-      // Load tutor profiles
+      // Load tutor and learner profiles
       const profiles: Record<string, UserProfiles> = {};
       for (const test of userTests) {
         if (test.tutorId && !profiles[test.tutorId]) {
           try {
             const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', test.tutorId);
             profiles[test.tutorId] = profile;
+          } catch (error) {
+            console.error('Error loading profile:', error);
+          }
+        }
+        if (test.learnerProfileId && !profiles[test.learnerProfileId]) {
+          try {
+            const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', test.learnerProfileId);
+            profiles[test.learnerProfileId] = profile;
           } catch (error) {
             console.error('Error loading profile:', error);
           }
@@ -629,50 +639,78 @@ export default function TestsPage() {
                   </span>
                 </div>
                 <div className="grid gap-6">
-                  {createdTests.map((test, index) => (
-                    <motion.div
-                      key={test._id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.5, delay: index * 0.1 }}
-                      className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 className="font-heading text-2xl uppercase text-foreground mb-2">
-                            {test.testTitle}
-                          </h3>
+                  {createdTests.map((test, index) => {
+                    const learnerProfile = test.learnerProfileId ? tutorProfiles[test.learnerProfileId] : null;
+                    const isSubmitted = test.learnerSubmissions && test.learnerSubmissions.length > 0;
+                    
+                    return (
+                      <motion.div
+                        key={test._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div>
+                            <h3 className="font-heading text-2xl uppercase text-foreground mb-2">
+                              {test.testTitle}
+                            </h3>
+                            <p className="font-paragraph text-sm text-secondary-foreground">
+                              {test._createdDate ? format(new Date(test._createdDate), 'MMM dd, yyyy') : 'Recently'}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleOpenDialog(test)}
+                              variant="outline"
+                              className="border-2 border-foreground text-foreground hover:bg-secondary h-10 px-4 font-paragraph"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              onClick={() => handleDeleteTest(test._id)}
+                              variant="outline"
+                              className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-10 px-4 font-paragraph"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="bg-primary/10 p-4 rounded-sm mb-4">
                           <p className="font-paragraph text-sm text-secondary-foreground">
-                            {test._createdDate ? format(new Date(test._createdDate), 'MMM dd, yyyy') : 'Recently'}
+                            <strong>Questions:</strong> {questions.length}
+                          </p>
+                          <p className="font-paragraph text-sm text-secondary-foreground mt-2">
+                            <strong>Assigned to:</strong> {learnerProfile?.fullName || 'Unknown Learner'}
                           </p>
                         </div>
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={() => handleOpenDialog(test)}
-                            variant="outline"
-                            className="border-2 border-foreground text-foreground hover:bg-secondary h-10 px-4 font-paragraph"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteTest(test._id)}
-                            variant="outline"
-                            className="border-2 border-destructive text-destructive hover:bg-destructive/10 h-10 px-4 font-paragraph"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="bg-primary/10 p-4 rounded-sm">
-                        <p className="font-paragraph text-sm text-secondary-foreground">
-                          <strong>Questions:</strong> {questions.length}
-                        </p>
-                        <p className="font-paragraph text-sm text-secondary-foreground mt-2">
-                          <strong>Session:</strong> {test.sessionId}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
+                        
+                        {/* Learner Score Section */}
+                        {isSubmitted && (
+                          <div className="bg-primary/5 p-4 rounded-sm border-l-4 border-primary">
+                            <h4 className="font-heading text-sm uppercase text-foreground mb-3">Learner Score</h4>
+                            <div className="grid md:grid-cols-3 gap-4">
+                              <div>
+                                <p className="font-paragraph text-xs uppercase text-secondary-foreground mb-1">Learner Name</p>
+                                <p className="font-heading text-lg text-foreground">{learnerProfile?.fullName || 'Unknown'}</p>
+                              </div>
+                              <div>
+                                <p className="font-paragraph text-xs uppercase text-secondary-foreground mb-1">Score</p>
+                                <p className="font-heading text-lg text-primary">{test.score || 0}%</p>
+                              </div>
+                              <div>
+                                <p className="font-paragraph text-xs uppercase text-secondary-foreground mb-1">Submitted</p>
+                                <p className="font-heading text-lg text-foreground">
+                                  {test.submissionDate ? format(new Date(test.submissionDate), 'MMM dd, yyyy') : 'N/A'}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               </div>
             )}

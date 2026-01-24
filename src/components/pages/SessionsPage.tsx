@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle, FileText } from 'lucide-react';
+import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle, FileText, BookOpen } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles, Sessions } from '@/entities';
@@ -27,10 +27,25 @@ interface Session {
   _updatedDate?: Date;
 }
 
+interface Test {
+  _id: string;
+  testTitle?: string;
+  sessionId?: string;
+  tutorId?: string;
+  learnerProfileId?: string;
+  questions?: string;
+  learnerSubmissions?: string;
+  score?: number;
+  submissionDate?: Date | string;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+}
+
 export default function SessionsPage() {
   const { member } = useMember();
   const [sessions, setSession] = useState<Session[]>([]);
   const [allProfiles, setAllProfiles] = useState<UserProfiles[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -59,6 +74,7 @@ export default function SessionsPage() {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<Session>('sessions', {}, { limit: 1000 });
       const profilesResult = await BaseCrudService.getAll<UserProfiles>('userprofiles', {}, { limit: 1000 });
+      const testsResult = await BaseCrudService.getAll<Test>('tests', {}, { limit: 1000 });
       
       // Filter sessions where user is host or participant
       const userSessions = result.items.filter(session =>
@@ -67,6 +83,7 @@ export default function SessionsPage() {
 
       setSession(userSessions);
       setAllProfiles(profilesResult.items);
+      setTests(testsResult.items);
 
       // Load participant profiles
       const profiles: Record<string, UserProfiles> = {};
