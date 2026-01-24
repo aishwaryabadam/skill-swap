@@ -534,6 +534,7 @@ export default function TestsPage() {
   }
 
   const createdTests = tests.filter(t => t.tutorId === member?._id);
+  const availableTests = tests.filter(t => t.tutorId !== member?._id);
   const submittedTests = tests.filter(t => t.tutorId !== member?._id && t.learnerSubmissions);
 
   return (
@@ -663,11 +664,11 @@ export default function TestsPage() {
                     Tests Available to Take
                   </h2>
                   <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
-                    {submittedTests.length}
+                    {availableTests.length}
                   </span>
                 </div>
                 <div className="grid gap-6">
-                  {submittedTests.map((test, index) => {
+                  {availableTests.map((test, index) => {
                     const tutor = tutorProfiles[test.tutorId || ''];
                     const isAlreadySubmitted = test.learnerSubmissions && test.learnerSubmissions.length > 0;
                     return (
@@ -697,7 +698,7 @@ export default function TestsPage() {
                               <p className="font-paragraph text-sm text-secondary-foreground">
                                 By {tutor?.fullName || 'Unknown Tutor'}
                               </p>
-                            </div>\
+                            </div>
                           </div>
                         </div>
                         <div className="bg-primary/10 p-4 rounded-sm mb-4">

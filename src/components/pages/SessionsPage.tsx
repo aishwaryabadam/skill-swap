@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle, FileText } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
-import { UserProfiles } from '@/entities';
+import { UserProfiles, Sessions } from '@/entities';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Image } from '@/components/ui/image';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { format, isPast, isFuture } from 'date-fns';
@@ -29,6 +30,7 @@ interface Session {
 export default function SessionsPage() {
   const { member } = useMember();
   const [sessions, setSession] = useState<Session[]>([]);
+  const [allProfiles, setAllProfiles] = useState<UserProfiles[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -39,7 +41,11 @@ export default function SessionsPage() {
     googleMeetLink: '',
     scheduledDateTime: '',
     participantId: '',
-    sessionStatus: 'scheduled'
+    sessionStatus: 'scheduled',
+    sessionTitle: '',
+    duration: '',
+    skillTopic: '',
+    description: ''
   });
 
   useEffect(() => {
@@ -52,6 +58,7 @@ export default function SessionsPage() {
     try {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<Session>('sessions', {}, { limit: 1000 });
+      const profilesResult = await BaseCrudService.getAll<UserProfiles>('userprofiles', {}, { limit: 1000 });
       
       // Filter sessions where user is host or participant
       const userSessions = result.items.filter(session =>
@@ -59,6 +66,7 @@ export default function SessionsPage() {
       );
 
       setSession(userSessions);
+      setAllProfiles(profilesResult.items);
 
       // Load participant profiles
       const profiles: Record<string, UserProfiles> = {};
@@ -89,7 +97,11 @@ export default function SessionsPage() {
         googleMeetLink: session.googleMeetLink || '',
         scheduledDateTime: session.scheduledDateTime ? new Date(session.scheduledDateTime).toISOString().slice(0, 16) : '',
         participantId: session.participantId || '',
-        sessionStatus: session.sessionStatus || 'scheduled'
+        sessionStatus: session.sessionStatus || 'scheduled',
+        sessionTitle: (session as any).sessionTitle || '',
+        duration: (session as any).duration || '',
+        skillTopic: (session as any).skillTopic || '',
+        description: (session as any).description || ''
       });
     } else {
       setIsEditMode(false);
@@ -98,14 +110,18 @@ export default function SessionsPage() {
         googleMeetLink: '',
         scheduledDateTime: '',
         participantId: '',
-        sessionStatus: 'scheduled'
+        sessionStatus: 'scheduled',
+        sessionTitle: '',
+        duration: '',
+        skillTopic: '',
+        description: ''
       });
     }
     setIsDialogOpen(true);
   };
 
   const handleSaveSession = async () => {
-    if (!member?._id || !formData.googleMeetLink || !formData.scheduledDateTime || !formData.participantId) {
+    if (!member?._id || !formData.googleMeetLink || !formData.scheduledDateTime || !formData.participantId || !formData.sessionTitle) {
       alert('Please fill in all required fields');
       return;
     }
@@ -170,15 +186,6 @@ export default function SessionsPage() {
     }
   };
 
-  const upcomingSessions = sessions.filter(s => {
-    if (s.sessionStatus === 'completed' || s.sessionStatus === 'cancelled') return false;
-    return s.scheduledDateTime ? isFuture(new Date(s.scheduledDateTime)) : false;
-  });
-
-  const completedSessions = sessions.filter(s => 
-    s.sessionStatus === 'completed' || (s.scheduledDateTime && isPast(new Date(s.scheduledDateTime)))
-  );
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -209,7 +216,7 @@ export default function SessionsPage() {
                 My Sessions
               </h1>
               <p className="font-paragraph text-lg text-primary-foreground/90">
-                Manage your upcoming sessions and completed history
+                Manage your teaching and learning sessions
               </p>
             </div>
             <Button
@@ -247,151 +254,340 @@ export default function SessionsPage() {
             </Button>
           </motion.div>
         ) : (
-          <div className="space-y-16">
-            {/* Upcoming Sessions */}
-            <div>
-              <div className="flex items-center gap-3 mb-8">
-                <Clock className="w-8 h-8 text-primary" />
-                <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
-                  Upcoming Sessions
-                </h2>
-                <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
-                  {upcomingSessions.length}
-                </span>
-              </div>
-              
-              {upcomingSessions.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
-                >
-                  <p className="font-paragraph text-lg text-secondary-foreground">
-                    No upcoming sessions scheduled. Create one to get started!
-                  </p>
-                </motion.div>
-              ) : (
-                <div className="grid gap-6">
-                  {upcomingSessions.map((session, index) => {
-                    const otherUserId = session.hostId === member?._id ? session.participantId : session.hostId;
-                    const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
+          <Tabs defaultValue="teaching" className="w-full">
+            <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
+              <TabsTrigger value="teaching" className="font-heading uppercase">Teaching</TabsTrigger>
+              <TabsTrigger value="learning" className="font-heading uppercase">Learning</TabsTrigger>
+            </TabsList>
 
-                    return (
-                      <SessionCard
-                        key={session._id}
-                        session={session}
-                        otherUser={otherUser}
-                        member={member}
-                        index={index}
-                        onEdit={handleOpenDialog}
-                        onDelete={handleDeleteSession}
-                        getStatusColor={getStatusColor}
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            {/* Teaching Sessions Tab */}
+            <TabsContent value="teaching" className="space-y-8">
+              {(() => {
+                const teachingSessions = sessions.filter(s => s.hostId === member?._id);
+                const upcomingTeaching = teachingSessions.filter(s => {
+                  if (s.sessionStatus === 'completed' || s.sessionStatus === 'cancelled') return false;
+                  return s.scheduledDateTime ? isFuture(new Date(s.scheduledDateTime)) : false;
+                });
+                const completedTeaching = teachingSessions.filter(s => 
+                  s.sessionStatus === 'completed' || (s.scheduledDateTime && isPast(new Date(s.scheduledDateTime)))
+                );
 
-            {/* Completed Sessions */}
-            <div className="pt-8 border-t-2 border-neutralborder">
-              <div className="flex items-center gap-3 mb-8">
-                <CheckCircle className="w-8 h-8 text-primary" />
-                <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
-                  Completed History
-                </h2>
-                <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
-                  {completedSessions.length}
-                </span>
-              </div>
-              
-              {completedSessions.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
-                >
-                  <p className="font-paragraph text-lg text-secondary-foreground">
-                    No completed sessions yet. Your history will appear here.
-                  </p>
-                </motion.div>
-              ) : (
-                <div className="grid gap-6">
-                  {completedSessions.map((session, index) => {
-                    const otherUserId = session.hostId === member?._id ? session.participantId : session.hostId;
-                    const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
+                return (
+                  <>
+                    {/* Upcoming Teaching Sessions */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-8">
+                        <Clock className="w-8 h-8 text-primary" />
+                        <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                          Upcoming Sessions
+                        </h2>
+                        <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                          {upcomingTeaching.length}
+                        </span>
+                      </div>
+                      
+                      {upcomingTeaching.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                        >
+                          <p className="font-paragraph text-lg text-secondary-foreground">
+                            No upcoming sessions scheduled. Create one to get started!
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <div className="grid gap-6">
+                          {upcomingTeaching.map((session, index) => {
+                            const learner = session.participantId ? participantProfiles[session.participantId] : null;
+                            return (
+                              <SessionCard
+                                key={session._id}
+                                session={session}
+                                otherUser={learner}
+                                member={member}
+                                index={index}
+                                onEdit={handleOpenDialog}
+                                onDelete={handleDeleteSession}
+                                getStatusColor={getStatusColor}
+                                isTeaching
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                    return (
-                      <SessionCard
-                        key={session._id}
-                        session={session}
-                        otherUser={otherUser}
-                        member={member}
-                        index={index}
-                        onEdit={handleOpenDialog}
-                        onDelete={handleDeleteSession}
-                        getStatusColor={getStatusColor}
-                        isCompleted
-                      />
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+                    {/* Completed Teaching Sessions */}
+                    <div className="pt-8 border-t-2 border-neutralborder">
+                      <div className="flex items-center gap-3 mb-8">
+                        <CheckCircle className="w-8 h-8 text-primary" />
+                        <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                          Completed Sessions
+                        </h2>
+                        <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                          {completedTeaching.length}
+                        </span>
+                      </div>
+                      
+                      {completedTeaching.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                        >
+                          <p className="font-paragraph text-lg text-secondary-foreground">
+                            No completed sessions yet. Your history will appear here.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <div className="grid gap-6">
+                          {completedTeaching.map((session, index) => {
+                            const learner = session.participantId ? participantProfiles[session.participantId] : null;
+                            return (
+                              <SessionCard
+                                key={session._id}
+                                session={session}
+                                otherUser={learner}
+                                member={member}
+                                index={index}
+                                onEdit={handleOpenDialog}
+                                onDelete={handleDeleteSession}
+                                getStatusColor={getStatusColor}
+                                isCompleted
+                                isTeaching
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </TabsContent>
+
+            {/* Learning Sessions Tab */}
+            <TabsContent value="learning" className="space-y-8">
+              {(() => {
+                const learningSessions = sessions.filter(s => s.participantId === member?._id);
+                const upcomingLearning = learningSessions.filter(s => {
+                  if (s.sessionStatus === 'completed' || s.sessionStatus === 'cancelled') return false;
+                  return s.scheduledDateTime ? isFuture(new Date(s.scheduledDateTime)) : false;
+                });
+                const completedLearning = learningSessions.filter(s => 
+                  s.sessionStatus === 'completed' || (s.scheduledDateTime && isPast(new Date(s.scheduledDateTime)))
+                );
+
+                return (
+                  <>
+                    {/* Upcoming Learning Sessions */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-8">
+                        <Clock className="w-8 h-8 text-primary" />
+                        <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                          Upcoming Sessions
+                        </h2>
+                        <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                          {upcomingLearning.length}
+                        </span>
+                      </div>
+                      
+                      {upcomingLearning.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                        >
+                          <p className="font-paragraph text-lg text-secondary-foreground">
+                            No upcoming sessions scheduled.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <div className="grid gap-6">
+                          {upcomingLearning.map((session, index) => {
+                            const tutor = session.hostId ? participantProfiles[session.hostId] : null;
+                            return (
+                              <SessionCard
+                                key={session._id}
+                                session={session}
+                                otherUser={tutor}
+                                member={member}
+                                index={index}
+                                onEdit={handleOpenDialog}
+                                onDelete={handleDeleteSession}
+                                getStatusColor={getStatusColor}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Completed Learning Sessions */}
+                    <div className="pt-8 border-t-2 border-neutralborder">
+                      <div className="flex items-center gap-3 mb-8">
+                        <CheckCircle className="w-8 h-8 text-primary" />
+                        <h2 className="font-heading text-3xl md:text-4xl uppercase text-foreground">
+                          Completed Sessions
+                        </h2>
+                        <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                          {completedLearning.length}
+                        </span>
+                      </div>
+                      
+                      {completedLearning.length === 0 ? (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="text-center py-12 bg-secondary/50 p-8 rounded-xl border border-neutralborder"
+                        >
+                          <p className="font-paragraph text-lg text-secondary-foreground">
+                            No completed sessions yet. Your history will appear here.
+                          </p>
+                        </motion.div>
+                      ) : (
+                        <div className="grid gap-6">
+                          {completedLearning.map((session, index) => {
+                            const tutor = session.hostId ? participantProfiles[session.hostId] : null;
+                            return (
+                              <SessionCard
+                                key={session._id}
+                                session={session}
+                                otherUser={tutor}
+                                member={member}
+                                index={index}
+                                onEdit={handleOpenDialog}
+                                onDelete={handleDeleteSession}
+                                getStatusColor={getStatusColor}
+                                isCompleted
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                );
+              })()}
+            </TabsContent>
+          </Tabs>
         )}
       </section>
 
       {/* Session Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-heading text-2xl uppercase">
               {isEditMode ? 'Edit Session' : 'Create New Session'}
             </DialogTitle>
             <DialogDescription className="font-paragraph text-base">
-              {isEditMode ? 'Update your session details' : 'Schedule a new skill-sharing session with Google Meet'}
+              {isEditMode ? 'Update your session details' : 'Schedule a new skill-sharing session'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* Participant ID */}
+            {/* Session Title */}
             <div>
-              <Label htmlFor="participantId" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                Participant Email/ID
+              <Label htmlFor="sessionTitle" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Session Title *
               </Label>
               <Input
-                id="participantId"
-                value={formData.participantId}
-                onChange={(e) => setFormData(prev => ({ ...prev, participantId: e.target.value }))}
-                placeholder="Enter participant email or ID"
+                id="sessionTitle"
+                value={formData.sessionTitle}
+                onChange={(e) => setFormData(prev => ({ ...prev, sessionTitle: e.target.value }))}
+                placeholder="e.g., Python Basics"
                 className="font-paragraph h-11"
               />
             </div>
 
-            {/* Google Meet Link */}
+            {/* Learner Selection */}
             <div>
-              <Label htmlFor="googleMeetLink" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                Google Meet Link
+              <Label htmlFor="participantId" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Select Learner *
               </Label>
-              <Input
-                id="googleMeetLink"
-                value={formData.googleMeetLink}
-                onChange={(e) => setFormData(prev => ({ ...prev, googleMeetLink: e.target.value }))}
-                placeholder="https://meet.google.com/..."
-                className="font-paragraph h-11"
-              />
+              <select
+                id="participantId"
+                value={formData.participantId}
+                onChange={(e) => setFormData(prev => ({ ...prev, participantId: e.target.value }))}
+                className="w-full font-paragraph h-11 px-3 border border-neutralborder rounded-sm"
+              >
+                <option value="">Choose a learner...</option>
+                {allProfiles.map(profile => (
+                  <option key={profile._id} value={profile._id}>
+                    {profile.fullName || 'Unknown'}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Scheduled Date & Time */}
             <div>
               <Label htmlFor="scheduledDateTime" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                Scheduled Date & Time
+                Scheduled Date & Time *
               </Label>
               <Input
                 id="scheduledDateTime"
                 type="datetime-local"
                 value={formData.scheduledDateTime}
                 onChange={(e) => setFormData(prev => ({ ...prev, scheduledDateTime: e.target.value }))}
+                className="font-paragraph h-11"
+              />
+            </div>
+
+            {/* Duration */}
+            <div>
+              <Label htmlFor="duration" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Duration (minutes)
+              </Label>
+              <Input
+                id="duration"
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData(prev => ({ ...prev, duration: e.target.value }))}
+                placeholder="e.g., 60"
+                className="font-paragraph h-11"
+              />
+            </div>
+
+            {/* Skill/Topic */}
+            <div>
+              <Label htmlFor="skillTopic" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Skill/Topic
+              </Label>
+              <Input
+                id="skillTopic"
+                value={formData.skillTopic}
+                onChange={(e) => setFormData(prev => ({ ...prev, skillTopic: e.target.value }))}
+                placeholder="e.g., Web Development"
+                className="font-paragraph h-11"
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="description" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe the session..."
+                className="font-paragraph min-h-20"
+              />
+            </div>
+
+            {/* Google Meet Link */}
+            <div>
+              <Label htmlFor="googleMeetLink" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Google Meet Link *
+              </Label>
+              <Input
+                id="googleMeetLink"
+                value={formData.googleMeetLink}
+                onChange={(e) => setFormData(prev => ({ ...prev, googleMeetLink: e.target.value }))}
+                placeholder="https://meet.google.com/..."
                 className="font-paragraph h-11"
               />
             </div>
@@ -448,7 +644,8 @@ function SessionCard({
   onEdit, 
   onDelete, 
   getStatusColor,
-  isCompleted = false 
+  isCompleted = false,
+  isTeaching = false
 }: any) {
   return (
     <motion.div
@@ -531,6 +728,15 @@ function SessionCard({
 
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
+            {isTeaching && isCompleted && (
+              <Button
+                onClick={() => window.location.href = '/tests'}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Create Test
+              </Button>
+            )}
             <Button
               onClick={() => onEdit(session)}
               className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
