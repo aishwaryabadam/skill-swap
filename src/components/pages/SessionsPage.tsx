@@ -652,26 +652,40 @@ export default function SessionsPage() {
   );
 }
 
-// SessionCard Component
-function SessionCard({ 
-  session, 
-  otherUser, 
-  member, 
-  index, 
-  onEdit, 
-  onDelete, 
+function SessionCard({
+  session,
+  otherUser,
+  member,
+  index,
+  onEdit,
+  onDelete,
   getStatusColor,
   isCompleted = false,
-  isTeaching = false
+  isTeaching = false,
+  tests = []
 }: any) {
+
+  // ✅ Find tests related to this session
+  const sessionTests = (tests || []).filter((t: any) => t.sessionId === session._id);
+
+  // ✅ Learner should see only their own test
+  const learnerTestsForThisSession = sessionTests.filter(
+    (t: any) => t.learnerProfileId === member?._id
+  );
+
+  // ✅ Tutor should see only tests created by them
+  const tutorCreatedTestsForThisSession = sessionTests.filter(
+    (t: any) => t.tutorId === member?._id
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className={`p-8 rounded-2xl border-2 transition-all hover:shadow-lg ${
-        isCompleted 
-          ? 'bg-gradient-to-br from-secondary/50 to-secondary/30 border-neutralborder/50' 
+        isCompleted
+          ? 'bg-gradient-to-br from-secondary/50 to-secondary/30 border-neutralborder/50'
           : 'bg-gradient-to-br from-secondary to-secondary/70 border-primary/20 hover:border-primary/40'
       }`}
     >
@@ -703,8 +717,13 @@ function SessionCard({
               <h3 className="font-heading text-2xl md:text-3xl uppercase text-foreground mb-3">
                 {otherUser?.fullName || 'Session'}
               </h3>
-              <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-heading tracking-wider ${getStatusColor(session.sessionStatus)}`}>
-                {session.sessionStatus?.charAt(0).toUpperCase() + session.sessionStatus?.slice(1) || 'Scheduled'}
+              <span
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-heading tracking-wider ${getStatusColor(
+                  session.sessionStatus
+                )}`}
+              >
+                {session.sessionStatus?.charAt(0).toUpperCase() + session.sessionStatus?.slice(1) ||
+                  'Scheduled'}
               </span>
             </div>
           </div>
@@ -716,9 +735,13 @@ function SessionCard({
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">Scheduled Date & Time</p>
+                <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">
+                  Scheduled Date & Time
+                </p>
                 <p className="font-paragraph text-base text-foreground font-medium">
-                  {session.scheduledDateTime ? format(new Date(session.scheduledDateTime), 'MMM dd, yyyy - HH:mm') : 'Not set'}
+                  {session.scheduledDateTime
+                    ? format(new Date(session.scheduledDateTime), 'MMM dd, yyyy - HH:mm')
+                    : 'Not set'}
                 </p>
               </div>
             </div>
@@ -729,7 +752,9 @@ function SessionCard({
                   <LinkIcon className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">Google Meet Link</p>
+                  <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">
+                    Google Meet Link
+                  </p>
                   <a
                     href={session.googleMeetLink}
                     target="_blank"
@@ -742,6 +767,103 @@ function SessionCard({
               </div>
             )}
           </div>
+
+          {/* ✅ Learner: Tests Available Section */}
+          {!isTeaching && isCompleted && (
+            <div className="mb-6 p-4 rounded-xl border border-neutralborder bg-background/70">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="h-5 w-5 text-primary" />
+                <h4 className="font-heading uppercase text-lg text-foreground">
+                  Tests Available
+                </h4>
+              </div>
+
+              {learnerTestsForThisSession.length === 0 ? (
+                <p className="font-paragraph text-sm text-secondary-foreground">
+                  No test available yet for this session.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {learnerTestsForThisSession.map((t: any) => (
+                    <div
+                      key={t._id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-neutralborder bg-secondary/30"
+                    >
+                      <div>
+                        <p className="font-heading text-sm uppercase text-foreground">
+                          {t.testTitle || 'Session Test'}
+                        </p>
+
+                        {/* ✅ show score if already submitted */}
+                        {typeof t.score === 'number' ? (
+                          <p className="font-paragraph text-sm text-primary mt-1">
+                            ✅ Submitted • Score: {t.score}
+                          </p>
+                        ) : (
+                          <p className="font-paragraph text-sm text-secondary-foreground mt-1">
+                            Pending Submission
+                          </p>
+                        )}
+                      </div>
+
+                      <Button
+                        onClick={() => {
+                          // Open test attempt page
+                          window.location.href = `/take-test?testId=${t._id}`;
+                        }}
+                        className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-5 font-paragraph"
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        {typeof t.score === 'number' ? 'View Result' : 'Take Test'}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ✅ Tutor: Learner Score Section */}
+          {isTeaching && isCompleted && (
+            <div className="mb-6 p-4 rounded-xl border border-neutralborder bg-background/70">
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle className="h-5 w-5 text-primary" />
+                <h4 className="font-heading uppercase text-lg text-foreground">
+                  Learner Score
+                </h4>
+              </div>
+
+              {tutorCreatedTestsForThisSession.length === 0 ? (
+                <p className="font-paragraph text-sm text-secondary-foreground">
+                  You have not created a test for this session yet.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {tutorCreatedTestsForThisSession.map((t: any) => (
+                    <div
+                      key={t._id}
+                      className="p-3 rounded-lg border border-neutralborder bg-secondary/30"
+                    >
+                      <p className="font-heading text-sm uppercase text-foreground">
+                        {t.testTitle || 'Session Test'}
+                      </p>
+
+                      {typeof t.score === 'number' ? (
+                        <p className="font-paragraph text-sm text-primary mt-1">
+                          ✅ Learner Score: {t.score}{" "}
+                          {t.submissionDate ? `• Submitted: ${format(new Date(t.submissionDate), "MMM dd, yyyy - HH:mm")}` : ""}
+                        </p>
+                      ) : (
+                        <p className="font-paragraph text-sm text-secondary-foreground mt-1">
+                          Learner has not submitted the test yet.
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
@@ -765,15 +887,20 @@ function SessionCard({
                 Mark Completed
               </Button>
             )}
+
             {isTeaching && isCompleted && (
               <Button
-                onClick={() => window.location.href = '/tests'}
+                onClick={() => {
+                  const learnerId = session.participantId;
+                  window.location.href = `/tests?sessionId=${session._id}&learnerId=${learnerId}`;
+                }}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
               >
                 <FileText className="mr-2 h-4 w-4" />
                 Create Test
               </Button>
             )}
+
             <Button
               onClick={() => onEdit(session)}
               className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
@@ -781,6 +908,7 @@ function SessionCard({
               <Edit className="mr-2 h-4 w-4" />
               Edit
             </Button>
+
             <Button
               onClick={() => onDelete(session._id)}
               variant="outline"
@@ -795,3 +923,4 @@ function SessionCard({
     </motion.div>
   );
 }
+
