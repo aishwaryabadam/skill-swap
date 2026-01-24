@@ -38,14 +38,14 @@ export default function IncomingSwapRequestsPage() {
   }, [member]);
 
   const loadIncomingRequests = async () => {
-    if (!member?.loginEmail) return;
+    if (!member?._id) return;
 
     try {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<SwapRequests>('swaprequests', {}, { limit: 1000 });
       
       // Filter for incoming requests (where user is the recipient)
-      const incomingRequests = result.items.filter(req => req.recipientProfileId === member.loginEmail);
+      const incomingRequests = result.items.filter(req => req.recipientProfileId === member._id);
       
       // Load sender profiles for each request
       const requestsWithProfiles = await Promise.all(

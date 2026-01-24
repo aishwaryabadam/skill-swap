@@ -54,12 +54,12 @@ export default function MyProfilePage() {
   }, [member]);
 
   const loadProfile = async () => {
-    if (!member?.loginEmail) return;
+    if (!member?._id) return;
 
     try {
       setIsLoading(true);
       const result = await BaseCrudService.getAll<UserProfiles>('userprofiles', {}, { limit: 1000 });
-      const userProfile = result.items.find(p => p._id === member.loginEmail);
+      const userProfile = result.items.find(p => p._id === member._id);
       
       if (userProfile) {
         setProfile(userProfile);
@@ -91,7 +91,7 @@ export default function MyProfilePage() {
   };
 
   const handleSave = async () => {
-    if (!member?.loginEmail) return;
+    if (!member?._id) return;
 
     try {
       setIsSaving(true);
@@ -103,7 +103,7 @@ export default function MyProfilePage() {
         });
       } else {
         await BaseCrudService.create('userprofiles', {
-          _id: member.loginEmail,
+          _id: member._id,
           ...formData
         });
       }

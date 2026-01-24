@@ -47,7 +47,7 @@ export default function SessionsPage() {
   }, [member]);
 
   const loadSessions = async () => {
-    if (!member?.loginEmail) return;
+    if (!member?._id) return;
 
     try {
       setIsLoading(true);
@@ -55,7 +55,7 @@ export default function SessionsPage() {
       
       // Filter sessions where user is host or participant
       const userSessions = result.items.filter(session =>
-        session.hostId === member.loginEmail || session.participantId === member.loginEmail
+        session.hostId === member._id || session.participantId === member._id
       );
 
       setSession(userSessions);
@@ -63,7 +63,7 @@ export default function SessionsPage() {
       // Load participant profiles
       const profiles: Record<string, UserProfiles> = {};
       for (const session of userSessions) {
-        const participantId = session.participantId || session.hostId;
+        const participantId = session.participantId === member._id ? session.hostId : session.participantId;
         if (participantId && !profiles[participantId]) {
           try {
             const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', participantId);
@@ -105,7 +105,7 @@ export default function SessionsPage() {
   };
 
   const handleSaveSession = async () => {
-    if (!member?.loginEmail || !formData.googleMeetLink || !formData.scheduledDateTime || !formData.participantId) {
+    if (!member?._id || !formData.googleMeetLink || !formData.scheduledDateTime || !formData.participantId) {
       alert('Please fill in all required fields');
       return;
     }
@@ -128,7 +128,7 @@ export default function SessionsPage() {
           _id: crypto.randomUUID(),
           googleMeetLink: formData.googleMeetLink,
           scheduledDateTime: new Date(formData.scheduledDateTime),
-          hostId: member.loginEmail,
+          hostId: member._id,
           participantId: formData.participantId,
           sessionStatus: formData.sessionStatus
         });
@@ -273,7 +273,7 @@ export default function SessionsPage() {
               ) : (
                 <div className="grid gap-6">
                   {upcomingSessions.map((session, index) => {
-                    const otherUserId = session.hostId === member?.loginEmail ? session.participantId : session.hostId;
+                    const otherUserId = session.hostId === member?._id ? session.participantId : session.hostId;
                     const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
 
                     return (
@@ -318,7 +318,7 @@ export default function SessionsPage() {
               ) : (
                 <div className="grid gap-6">
                   {completedSessions.map((session, index) => {
-                    const otherUserId = session.hostId === member?.loginEmail ? session.participantId : session.hostId;
+                    const otherUserId = session.hostId === member?._id ? session.participantId : session.hostId;
                     const otherUser = otherUserId ? participantProfiles[otherUserId] : null;
 
                     return (

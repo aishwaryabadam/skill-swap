@@ -57,7 +57,7 @@ export default function ChatPage() {
   };
 
   const loadChatData = async () => {
-    if (!id || !member?.loginEmail) return;
+    if (!id || !member?._id) return;
 
     try {
       setIsLoading(true);
@@ -75,15 +75,15 @@ export default function ChatPage() {
   };
 
   const loadMessages = async () => {
-    if (!id || !member?.loginEmail) return;
+    if (!id || !member?._id) return;
 
     try {
       const result = await BaseCrudService.getAll<ChatMessage>('chatmessages', {}, { limit: 1000 });
       
       // Filter messages between current user and other user
       const filteredMessages = result.items.filter(msg => 
-        (msg.senderId === member.loginEmail && msg.recipientId === id) ||
-        (msg.senderId === id && msg.recipientId === member.loginEmail)
+        (msg.senderId === member._id && msg.recipientId === id) ||
+        (msg.senderId === id && msg.recipientId === member._id)
       );
 
       // Sort by timestamp
@@ -97,7 +97,7 @@ export default function ChatPage() {
 
       // Mark messages as read
       for (const msg of filteredMessages) {
-        if (msg.recipientId === member.loginEmail && !msg.isRead) {
+        if (msg.recipientId === member._id && !msg.isRead) {
           await BaseCrudService.update<ChatMessage>('chatmessages', {
             _id: msg._id,
             isRead: true
@@ -110,7 +110,7 @@ export default function ChatPage() {
   };
 
   const handleSendMessage = async () => {
-    if ((!messageText.trim() && !selectedFile) || !member?.loginEmail || !id) return;
+    if ((!messageText.trim() && !selectedFile) || !member?._id || !id) return;
 
     try {
       setIsSending(true);
@@ -137,7 +137,7 @@ export default function ChatPage() {
 
       const messageData = {
         _id: crypto.randomUUID(),
-        senderId: member.loginEmail,
+        senderId: member._id,
         recipientId: id,
         content: messageText,
         timestamp: new Date(),

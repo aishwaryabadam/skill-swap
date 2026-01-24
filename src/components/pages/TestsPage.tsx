@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit, CheckCircle, Clock, BookOpen, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit, CheckCircle, Clock, BookOpen, AlertCircle, FileText } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles, Sessions } from '@/entities';
@@ -47,6 +47,15 @@ interface TestSubmissionMode {
   answers: number[];
 }
 
+interface TestResult {
+  testId: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  answers: number[];
+  submittedAt: Date | string;
+}
+
 export default function TestsPage() {
   const { member } = useMember();
   const [tests, setTests] = useState<Test[]>([]);
@@ -66,6 +75,7 @@ export default function TestsPage() {
   });
   const [submissionMode, setSubmissionMode] = useState<TestSubmissionMode | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
 
   useEffect(() => {
     loadTests();
@@ -261,9 +271,17 @@ export default function TestsPage() {
         submissionDate: new Date()
       });
 
+      // Show result
+      setTestResult({
+        testId: submissionMode.testId,
+        score: score,
+        totalQuestions: submissionMode.questions.length,
+        correctAnswers: correctCount,
+        answers: submissionMode.answers,
+        submittedAt: new Date()
+      });
+
       await loadTests();
-      setSubmissionMode(null);
-      alert(`Test submitted! Your score: ${score}%`);
     } catch (error) {
       console.error('Error submitting test:', error);
       alert('Failed to submit test. Please try again.');
@@ -279,6 +297,153 @@ export default function TestsPage() {
         <div className="flex justify-center items-center py-20">
           <LoadingSpinner />
         </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // If showing test result
+  if (testResult) {
+    const test = tests.find(t => t._id === testResult.testId);
+    const tutor = test?.tutorId ? tutorProfiles[test.tutorId] : null;
+    const resultQuestions = testResult.answers.map((answer, idx) => {
+      const question = testResult.answers.length > 0 ? JSON.parse(test?.questions || '[]')[idx] : null;
+      return {
+        question,
+        userAnswer: answer,
+        isCorrect: answer === question?.correctAnswer
+      };
+    });
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+
+        {/* Result Header */}
+        <section className="w-full bg-gradient-to-r from-primary to-primary/90 py-12">
+          <div className="max-w-[100rem] mx-auto px-8 md:px-16">
+            <h1 className="font-heading text-4xl md:text-5xl uppercase text-primary-foreground">
+              Test Results
+            </h1>
+          </div>
+        </section>
+
+        {/* Result Content */}
+        <section className="w-full max-w-[100rem] mx-auto px-8 md:px-16 py-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="bg-secondary p-12 rounded-2xl border-2 border-primary/20 mb-12"
+          >
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center justify-center w-32 h-32 rounded-full bg-primary/10 mb-6">
+                <div className="text-center">
+                  <p className="font-heading text-5xl text-primary font-bold">{testResult.score}%</p>
+                  <p className="font-paragraph text-sm text-secondary-foreground mt-2">Your Score</p>
+                </div>
+              </div>
+              <h2 className="font-heading text-3xl uppercase text-foreground mb-4">
+                {test?.testTitle}
+              </h2>
+              {tutor && (
+                <p className="font-paragraph text-lg text-secondary-foreground">
+                  Created by <strong>{tutor.fullName}</strong>
+                </p>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 mb-12">
+              <div className="bg-background p-6 rounded-lg border-2 border-neutralborder text-center">
+                <p className="font-heading text-sm uppercase text-secondary-foreground mb-2">Total Questions</p>
+                <p className="font-heading text-4xl text-primary">{testResult.totalQuestions}</p>
+              </div>
+              <div className="bg-background p-6 rounded-lg border-2 border-primary/30 text-center">
+                <p className="font-heading text-sm uppercase text-secondary-foreground mb-2">Correct Answers</p>
+                <p className="font-heading text-4xl text-primary">{testResult.correctAnswers}</p>
+              </div>
+              <div className="bg-background p-6 rounded-lg border-2 border-destructive/30 text-center">
+                <p className="font-heading text-sm uppercase text-secondary-foreground mb-2">Incorrect Answers</p>
+                <p className="font-heading text-4xl text-destructive">{testResult.totalQuestions - testResult.correctAnswers}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button
+                onClick={() => {
+                  setTestResult(null);
+                  setSubmissionMode(null);
+                }}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-12 font-paragraph"
+              >
+                Back to Tests
+              </Button>
+            </div>
+          </motion.div>
+
+          {/* Detailed Results */}
+          <div>
+            <h3 className="font-heading text-2xl uppercase text-foreground mb-6">Detailed Results</h3>
+            <div className="space-y-4">
+              {resultQuestions.map((result, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  className={`p-6 rounded-lg border-2 ${
+                    result.isCorrect 
+                      ? 'bg-primary/5 border-primary/30' 
+                      : 'bg-destructive/5 border-destructive/30'
+                  }`}
+                >
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      result.isCorrect 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-destructive text-destructiveforeground'
+                    }`}>
+                      {result.isCorrect ? '✓' : '✗'}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-heading text-lg uppercase text-foreground mb-2">
+                        Question {idx + 1}
+                      </h4>
+                      <p className="font-paragraph text-base text-secondary-foreground mb-4">
+                        {result.question?.question}
+                      </p>
+                      <div className="space-y-2">
+                        {result.question?.options.map((option, optIdx) => {
+                          const isUserAnswer = result.userAnswer === optIdx;
+                          const isCorrectAnswer = result.question?.correctAnswer === optIdx;
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`p-3 rounded border-2 ${
+                                isCorrectAnswer
+                                  ? 'bg-primary/10 border-primary text-primary'
+                                  : isUserAnswer
+                                  ? 'bg-destructive/10 border-destructive text-destructive'
+                                  : 'bg-background border-neutralborder text-secondary-foreground'
+                              }`}
+                            >
+                              <p className="font-paragraph text-sm">
+                                <strong>{String.fromCharCode(65 + optIdx)}:</strong> {option}
+                                {isCorrectAnswer && ' ✓ (Correct)'}
+                                {isUserAnswer && !isCorrectAnswer && ' ✗ (Your answer)'}
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <Footer />
       </div>
     );
