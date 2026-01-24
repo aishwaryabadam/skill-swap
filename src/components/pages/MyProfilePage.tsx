@@ -58,8 +58,8 @@ export default function MyProfilePage() {
 
     try {
       setIsLoading(true);
-      const result = await BaseCrudService.getAll<UserProfiles>('userprofiles', {}, { limit: 1000 });
-      const userProfile = result.items.find(p => p._id === member._id);
+      // Try to fetch the profile using member._id directly
+      const userProfile = await BaseCrudService.getById<UserProfiles>('userprofiles', member._id);
       
       if (userProfile) {
         setProfile(userProfile);
@@ -78,13 +78,20 @@ export default function MyProfilePage() {
           _id: userProfile._id
         });
       } else {
-        setFormData(prev => (({
+        // Profile doesn't exist yet, initialize with member data
+        setFormData(prev => ({
           ...prev,
-          fullName: member.profile?.nickname || member.contact?.firstName || ''
-        })));
+          fullName: member.profile?.nickname || member.contact?.firstName || '',
+          _id: member._id
+        }));
       }
     } catch (error) {
-      console.error('Error loading profile:', error);
+      // Profile doesn't exist yet, that's okay
+      setFormData(prev => ({
+        ...prev,
+        fullName: member.profile?.nickname || member.contact?.firstName || '',
+        _id: member._id
+      }));
     } finally {
       setIsLoading(false);
     }

@@ -3,11 +3,32 @@ import { useMember } from '@/integrations';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { BaseCrudService } from '@/integrations';
+import { UserProfiles } from '@/entities';
 
 export default function Header() {
   const { member, isAuthenticated, isLoading, actions } = useMember();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfiles | null>(null);
+
+  useEffect(() => {
+    if (member?._id && isAuthenticated) {
+      loadUserProfile();
+    }
+  }, [member?._id, isAuthenticated]);
+
+  const loadUserProfile = async () => {
+    if (!member?._id) return;
+    try {
+      const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', member._id);
+      setUserProfile(profile);
+    } catch (error) {
+      // Profile might not exist yet, that's okay
+    }
+  };
+
+  const displayName = userProfile?.fullName || member?.profile?.nickname || 'My Profile';
 
   return (
     <header className="w-full bg-gradient-to-r from-primary to-primary/90 sticky top-0 z-50 shadow-lg">
@@ -18,7 +39,6 @@ export default function Header() {
             SkillSwap
           </Link>
 
-          {/* Desktop Navigation */}
           {/* Mobile Menu Button */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -27,7 +47,9 @@ export default function Header() {
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-        <nav className="hidden md:flex items-center gap-12 flex-1 justify-center">
+
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-12 flex-1 justify-center">
             <Link 
               to="/" 
               className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
@@ -82,7 +104,7 @@ export default function Header() {
                   to="/my-profile" 
                   className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
                 >
-                  {member?.profile?.nickname || 'My Profile'}
+                  {displayName}
                 </Link>
                 <Button 
                   onClick={actions.logout}
@@ -94,8 +116,7 @@ export default function Header() {
               </>
             )}
           </nav>
-
-          </div>
+        </div>
 
         {/* Mobile Navigation */}
         {mobileMenuOpen && (
@@ -164,7 +185,7 @@ export default function Header() {
                   onClick={() => setMobileMenuOpen(false)}
                   className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
                 >
-                  {member?.profile?.nickname || 'My Profile'}
+                  {displayName}
                 </Link>
                 <Button 
                   onClick={() => {
