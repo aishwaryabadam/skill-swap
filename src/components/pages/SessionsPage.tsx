@@ -728,6 +728,26 @@ function SessionCard({
 
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
+            {isTeaching && !isCompleted && (
+              <Button
+                onClick={async () => {
+                  try {
+                    await BaseCrudService.update<Session>('sessions', {
+                      _id: session._id,
+                      sessionStatus: 'completed'
+                    });
+                    window.location.reload();
+                  } catch (error) {
+                    console.error('Error updating session status:', error);
+                    alert('Failed to mark session as completed.');
+                  }
+                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Mark Completed
+              </Button>
+            )}
             {isTeaching && isCompleted && (
               <Button
                 onClick={() => window.location.href = '/tests'}

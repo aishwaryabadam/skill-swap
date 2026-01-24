@@ -89,10 +89,24 @@ export default function TestsPage() {
       const result = await BaseCrudService.getAll<Test>('tests', {}, { limit: 1000 });
       const sessionsResult = await BaseCrudService.getAll<Sessions>('sessions', {}, { limit: 1000 });
 
-      // Filter tests where user is tutor or learner
-      const userTests = result.items.filter(test => 
-        test.tutorId === member._id || test.learnerSubmissions
-      );
+      // Filter tests based on user role:
+      // - If tutor: show tests they created
+      // - If learner: show only tests for sessions they attended (participantId matches)
+      const userTests = result.items.filter(test => {
+        if (test.tutorId === member._id) {
+          // Tutor sees all tests they created
+          return true;
+        }
+        
+        // For learners, find the session and check if they're the participant
+        const session = sessionsResult.items.find(s => s._id === test.sessionId);
+        if (session && session.participantId === member._id) {
+          // Learner sees tests only for sessions they attended
+          return true;
+        }
+        
+        return false;
+      });
 
       setTests(userTests);
       setSessions(sessionsResult.items.filter(s => s.hostId === member._id || s.participantId === member._id));
@@ -183,6 +197,13 @@ export default function TestsPage() {
     try {
       setIsSaving(true);
 
+      // Find the session to get the learner's ID
+      const session = sessions.find(s => s._id === formData.sessionId);
+      if (!session || !session.participantId) {
+        alert('Could not find the learner for this session');
+        return;
+      }
+
       if (isEditMode && selectedTest) {
         await BaseCrudService.update<Test>('tests', {
           _id: selectedTest._id,
@@ -196,6 +217,7 @@ export default function TestsPage() {
           testTitle: formData.testTitle,
           sessionId: formData.sessionId,
           tutorId: member._id,
+          learnerProfileId: session.participantId,
           questions: JSON.stringify(questions),
           learnerSubmissions: '',
           score: 0
