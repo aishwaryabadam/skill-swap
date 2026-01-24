@@ -96,15 +96,29 @@ export default function MyProfilePage() {
     try {
       setIsSaving(true);
 
+      const profileData = {
+        fullName: formData.fullName,
+        bio: formData.bio,
+        profilePicture: formData.profilePicture,
+        skillsToTeach: formData.skillsToTeach,
+        skillsToLearn: formData.skillsToLearn,
+        isAvailable: formData.isAvailable,
+        availabilityDetails: formData.availabilityDetails,
+        availabilityDays: formData.availabilityDays,
+        instagramId: formData.instagramId,
+        linkedinUrl: formData.linkedinUrl,
+        githubId: formData.githubId
+      };
+
       if (profile) {
         await BaseCrudService.update<UserProfiles>('userprofiles', {
           _id: profile._id,
-          ...formData
+          ...profileData
         });
       } else {
         await BaseCrudService.create('userprofiles', {
           _id: member._id,
-          ...formData
+          ...profileData
         });
       }
 
