@@ -467,18 +467,59 @@ export default function SessionsPage() {
                         <div className="grid gap-6">
                           {completedLearning.map((session, index) => {
                             const tutor = session.hostId ? participantProfiles[session.hostId] : null;
+                            const sessionTests = tests.filter(t => t.sessionId === session._id);
                             return (
-                              <SessionCard
-                                key={session._id}
-                                session={session}
-                                otherUser={tutor}
-                                member={member}
-                                index={index}
-                                onEdit={handleOpenDialog}
-                                onDelete={handleDeleteSession}
-                                getStatusColor={getStatusColor}
-                                isCompleted
-                              />
+                              <div key={session._id}>
+                                <SessionCard
+                                  session={session}
+                                  otherUser={tutor}
+                                  member={member}
+                                  index={index}
+                                  onEdit={handleOpenDialog}
+                                  onDelete={handleDeleteSession}
+                                  getStatusColor={getStatusColor}
+                                  isCompleted
+                                />
+                                {sessionTests.length > 0 && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.4, delay: 0.2 }}
+                                    className="mt-4 ml-4 p-6 bg-primary/5 border-l-4 border-primary rounded-lg"
+                                  >
+                                    <div className="flex items-center gap-3 mb-4">
+                                      <FileText className="w-5 h-5 text-primary" />
+                                      <h4 className="font-heading text-lg uppercase text-foreground">
+                                        Tests for this Session
+                                      </h4>
+                                    </div>
+                                    <div className="space-y-3">
+                                      {sessionTests.map((test) => (
+                                        <div key={test._id} className="bg-background p-4 rounded border-2 border-primary/20">
+                                          <div className="flex items-center justify-between">
+                                            <div>
+                                              <p className="font-heading text-base uppercase text-foreground mb-1">
+                                                {test.testTitle}
+                                              </p>
+                                              <p className="font-paragraph text-sm text-secondary-foreground">
+                                                {test.learnerSubmissions ? `Score: ${test.score}%` : 'Not yet submitted'}
+                                              </p>
+                                            </div>
+                                            {!test.learnerSubmissions && (
+                                              <Button
+                                                onClick={() => window.location.href = '/tests'}
+                                                className="bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 font-paragraph text-sm"
+                                              >
+                                                Take Test
+                                              </Button>
+                                            )}
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
@@ -795,5 +836,3 @@ function SessionCard({
     </motion.div>
   );
 }
-
-
