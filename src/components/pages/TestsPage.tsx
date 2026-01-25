@@ -566,8 +566,8 @@ export default function TestsPage() {
   }
 
   const createdTests = tests.filter(t => t.tutorId === member?._id);
-  const availableTests = tests.filter(t => t.tutorId !== member?._id);
-  const submittedTests = tests.filter(t => t.tutorId !== member?._id && t.learnerSubmissions);
+  const availableTests = tests.filter(t => t.learnerProfileId === member?._id);
+  const submittedTests = tests.filter(t => t.learnerProfileId === member?._id && t.learnerSubmissions);
 
   return (
     <div className="min-h-screen bg-background">
