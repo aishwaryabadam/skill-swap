@@ -587,16 +587,18 @@ export default function TestsPage() {
                 Session Tests
               </h1>
               <p className="font-paragraph text-lg text-primary-foreground">
-                Create and manage MCQ tests for your sessions
+                {createdTests.length > 0 ? 'Create and manage MCQ tests for your sessions' : 'Take tests created by your tutors'}
               </p>
             </div>
-            <Button
-              onClick={() => handleOpenDialog()}
-              className="bg-background text-foreground hover:bg-secondary h-12 px-8 font-paragraph"
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Test
-            </Button>
+            {createdTests.length > 0 && (
+              <Button
+                onClick={() => handleOpenDialog()}
+                className="bg-background text-foreground hover:bg-secondary h-12 px-8 font-paragraph"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create Test
+              </Button>
+            )}
           </motion.div>
         </div>
       </section>
@@ -715,8 +717,8 @@ export default function TestsPage() {
               </div>
             )}
 
-            {/* Submitted Tests */}
-            {submittedTests.length > 0 && (
+            {/* Available Tests for Learners */}
+            {availableTests.length > 0 && (
               <div className="pt-8 border-t-2 border-neutralborder">
                 <div className="flex items-center gap-3 mb-8">
                   <CheckCircle className="w-8 h-8 text-primary" />
@@ -785,6 +787,73 @@ export default function TestsPage() {
                             Take Test
                           </Button>
                         )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Submitted Tests */}
+            {submittedTests.length > 0 && (
+              <div className="pt-8 border-t-2 border-neutralborder">
+                <div className="flex items-center gap-3 mb-8">
+                  <CheckCircle className="w-8 h-8 text-primary" />
+                  <h2 className="font-heading text-3xl uppercase text-foreground">
+                    Your Submitted Tests
+                  </h2>
+                  <span className="ml-auto bg-primary text-primary-foreground px-4 py-2 rounded-full font-heading text-sm">
+                    {submittedTests.length}
+                  </span>
+                </div>
+                <div className="grid gap-6">
+                  {submittedTests.map((test, index) => {
+                    const tutor = tutorProfiles[test.tutorId || ''];
+                    return (
+                      <motion.div
+                        key={test._id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                        className="bg-secondary p-8 rounded-sm border-2 border-neutralborder"
+                      >
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center gap-4">
+                            {tutor?.profilePicture && (
+                              <div className="w-16 h-16 rounded-full overflow-hidden bg-primary/10">
+                                <Image
+                                  src={tutor.profilePicture}
+                                  alt={tutor.fullName || 'Tutor'}
+                                  className="w-full h-full object-cover"
+                                  width={64}
+                                />
+                              </div>
+                            )}
+                            <div>
+                              <h3 className="font-heading text-xl uppercase text-foreground mb-2">
+                                {test.testTitle}
+                              </h3>
+                              <p className="font-paragraph text-sm text-secondary-foreground">
+                                By {tutor?.fullName || 'Unknown Tutor'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="bg-primary/10 p-4 rounded-sm mb-4">
+                          <p className="font-paragraph text-sm text-secondary-foreground">
+                            <strong>Your Score:</strong> {test.score || 0}%
+                          </p>
+                          <p className="font-paragraph text-sm text-secondary-foreground mt-2">
+                            <strong>Submitted:</strong> {test.submissionDate ? format(new Date(test.submissionDate), 'MMM dd, yyyy HH:mm') : 'Not submitted'}
+                          </p>
+                        </div>
+                        <Button
+                          onClick={() => handleStartTest(test)}
+                          variant="outline"
+                          className="w-full border-2 border-primary text-primary hover:bg-primary/10 h-11 font-paragraph"
+                        >
+                          View Results
+                        </Button>
                       </motion.div>
                     );
                   })}
