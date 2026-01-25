@@ -272,6 +272,34 @@ export default function TestsPage() {
     }
   };
 
+  const handleViewResults = (test: Test) => {
+    try {
+      const parsedQuestions = JSON.parse(test.questions || '[]');
+      const submissions = JSON.parse(test.learnerSubmissions || '{}');
+      
+      let correctCount = 0;
+      submissions.answers?.forEach((answer: number, idx: number) => {
+        if (answer === parsedQuestions[idx]?.correctAnswer) {
+          correctCount++;
+        }
+      });
+      
+      const score = Math.round((correctCount / parsedQuestions.length) * 100);
+      
+      setTestResult({
+        testId: test._id,
+        score: score,
+        totalQuestions: parsedQuestions.length,
+        correctAnswers: correctCount,
+        answers: submissions.answers || [],
+        submittedAt: test.submissionDate || new Date()
+      });
+    } catch (error) {
+      console.error('Error loading results:', error);
+      alert('Failed to load results. Please try again.');
+    }
+  };
+
   const handleSubmitTest = async () => {
     if (!submissionMode || !member?._id) return;
 
@@ -848,7 +876,7 @@ export default function TestsPage() {
                           </p>
                         </div>
                         <Button
-                          onClick={() => handleStartTest(test)}
+                          onClick={() => handleViewResults(test)}
                           variant="outline"
                           className="w-full border-2 border-primary text-primary hover:bg-primary/10 h-11 font-paragraph"
                         >
