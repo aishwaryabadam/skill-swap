@@ -188,23 +188,16 @@ export default function BlogPage() {
                     )}
                   </div>
 
-                  {/* Read More Button */}
-                  <Button 
-                    onClick={() => {
-                      if (post.externalUrl) {
-                        window.open(post.externalUrl, '_blank');
-                      }
-                    }}
-                    disabled={!post.externalUrl}
-                    className={`w-full h-11 font-paragraph group-hover:shadow-lg transition-all ${
-                      post.externalUrl 
-                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer' 
-                        : 'bg-secondary text-secondary-foreground cursor-not-allowed opacity-50'
-                    }`}
-                  >
-                    Read More
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
+                  {/* Read More Button - Only show if external URL exists */}
+                  {post.externalUrl && (
+                    <Button 
+                      onClick={() => window.open(post.externalUrl, '_blank')}
+                      className="w-full h-11 font-paragraph group-hover:shadow-lg transition-all bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+                    >
+                      Read Full Article
+                      <ArrowRight className="ml-2 w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </motion.div>
             ))}

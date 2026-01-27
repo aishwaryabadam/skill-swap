@@ -265,6 +265,139 @@ export default function AboutPage() {
         </motion.div>
       </section>
 
+      {/* Additional Content Section - Why SkillSwap */}
+      <section className="w-full bg-secondary py-24">
+        <div className="max-w-[120rem] mx-auto px-4 md:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-16"
+          >
+            <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-4 tracking-wider">
+              Why Choose SkillSwap?
+            </h2>
+            <p className="font-paragraph text-xl text-secondary-foreground max-w-2xl">
+              We've designed every aspect of our platform to make skill exchange seamless, rewarding, and meaningful.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                title: 'Verified Profiles',
+                description: 'Every member is verified to ensure a safe and trustworthy community. Know exactly who you\'re learning from or teaching.'
+              },
+              {
+                title: 'Flexible Scheduling',
+                description: 'Choose between online sessions via Google Meet or in-person meetings. Learn at your own pace and on your own terms.'
+              },
+              {
+                title: 'Real Reviews',
+                description: 'Transparent feedback system helps build trust. See what others have learned and share your own experiences.'
+              },
+              {
+                title: 'No Hidden Fees',
+                description: 'Completely free platform. Exchange skills directly without intermediaries or payment barriers.'
+              },
+              {
+                title: 'Global Network',
+                description: 'Connect with learners and teachers from 150+ countries. Access diverse perspectives and expertise.'
+              },
+              {
+                title: 'Progress Tracking',
+                description: 'Track your learning journey with tests, certificates, and session history. Measure your growth.'
+              }
+            ].map((item, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+                className="bg-background p-8 rounded-2xl border-2 border-neutralborder hover:border-primary transition-all duration-300"
+              >
+                <h3 className="font-heading text-2xl uppercase text-foreground mb-4 tracking-wider">
+                  {item.title}
+                </h3>
+                <p className="font-paragraph text-secondary-foreground leading-relaxed">
+                  {item.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Impact Section */}
+      <section className="w-full max-w-[120rem] mx-auto px-4 md:px-8 py-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mb-16"
+        >
+          <h2 className="font-heading text-5xl md:text-6xl uppercase text-foreground mb-4 tracking-wider">
+            Our Impact
+          </h2>
+          <p className="font-paragraph text-xl text-secondary-foreground max-w-2xl">
+            Since our launch, SkillSwap has transformed how people learn and connect globally.
+          </p>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <div className="space-y-8">
+              <div className="border-l-4 border-primary pl-6">
+                <h3 className="font-heading text-2xl uppercase text-foreground mb-2 tracking-wider">
+                  Democratizing Education
+                </h3>
+                <p className="font-paragraph text-secondary-foreground">
+                  We've eliminated financial barriers to learning, making quality education accessible to everyone regardless of economic background.
+                </p>
+              </div>
+              <div className="border-l-4 border-primary pl-6">
+                <h3 className="font-heading text-2xl uppercase text-foreground mb-2 tracking-wider">
+                  Building Connections
+                </h3>
+                <p className="font-paragraph text-secondary-foreground">
+                  Our platform has facilitated meaningful connections between millions of learners and teachers, creating lasting relationships and networks.
+                </p>
+              </div>
+              <div className="border-l-4 border-primary pl-6">
+                <h3 className="font-heading text-2xl uppercase text-foreground mb-2 tracking-wider">
+                  Empowering Communities
+                </h3>
+                <p className="font-paragraph text-secondary-foreground">
+                  Local communities have leveraged SkillSwap to share cultural knowledge, professional skills, and personal development opportunities.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl"
+          >
+            <Image
+              src="https://static.wixstatic.com/media/5b6f22_8f7c4e5d9e2b4a1f3c6d8e9f0a1b2c3d~mv2.png?originWidth=600&originHeight=400"
+              alt="Our impact"
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
+        </div>
+      </section>
+
       <Footer />
     </div>
   );

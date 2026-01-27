@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle, FileText, BookOpen } from 'lucide-react';
+import { Plus, Calendar, Link as LinkIcon, Trash2, Edit, Clock, CheckCircle, FileText, BookOpen, MapPin, Video } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles, Sessions } from '@/entities';
@@ -23,6 +23,8 @@ interface Session {
   hostId?: string;
   participantId?: string;
   sessionStatus?: string;
+  sessionMode?: string;
+  location?: string;
   _createdDate?: Date;
   _updatedDate?: Date;
 }
@@ -60,7 +62,9 @@ export default function SessionsPage() {
     sessionTitle: '',
     duration: '',
     skillTopic: '',
-    description: ''
+    description: '',
+    sessionMode: 'online',
+    location: ''
   });
 
   useEffect(() => {
@@ -636,19 +640,53 @@ export default function SessionsPage() {
               />
             </div>
 
-            {/* Google Meet Link */}
+            {/* Session Mode */}
             <div>
-              <Label htmlFor="googleMeetLink" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                Google Meet Link *
+              <Label htmlFor="sessionMode" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                Session Mode *
               </Label>
-              <Input
-                id="googleMeetLink"
-                value={formData.googleMeetLink}
-                onChange={(e) => setFormData(prev => ({ ...prev, googleMeetLink: e.target.value }))}
-                placeholder="https://meet.google.com/..."
-                className="font-paragraph h-11"
-              />
+              <select
+                id="sessionMode"
+                value={formData.sessionMode}
+                onChange={(e) => setFormData(prev => ({ ...prev, sessionMode: e.target.value }))}
+                className="w-full font-paragraph h-11 px-3 border border-neutralborder rounded-sm"
+              >
+                <option value="online">Online (Google Meet)</option>
+                <option value="in-person">In-Person</option>
+              </select>
             </div>
+
+            {/* Google Meet Link - Only for Online */}
+            {formData.sessionMode === 'online' && (
+              <div>
+                <Label htmlFor="googleMeetLink" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                  Google Meet Link *
+                </Label>
+                <Input
+                  id="googleMeetLink"
+                  value={formData.googleMeetLink}
+                  onChange={(e) => setFormData(prev => ({ ...prev, googleMeetLink: e.target.value }))}
+                  placeholder="https://meet.google.com/..."
+                  className="font-paragraph h-11"
+                />
+              </div>
+            )}
+
+            {/* Location - Only for In-Person */}
+            {formData.sessionMode === 'in-person' && (
+              <div>
+                <Label htmlFor="location" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                  Location *
+                </Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g., Coffee Shop, Library, etc."
+                  className="font-paragraph h-11"
+                />
+              </div>
+            )}
 
             {/* Session Status */}
             <div>
@@ -764,7 +802,29 @@ function SessionCard({
               </div>
             </div>
 
-            {session.googleMeetLink && (
+            {/* Session Mode Indicator */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                {(session as any).sessionMode === 'in-person' ? (
+                  <MapPin className="h-5 w-5 text-primary" />
+                ) : (
+                  <Video className="h-5 w-5 text-primary" />
+                )}
+              </div>
+              <div>
+                <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">
+                  {(session as any).sessionMode === 'in-person' ? 'Location' : 'Session Type'}
+                </p>
+                <p className="font-paragraph text-base text-foreground font-medium">
+                  {(session as any).sessionMode === 'in-person' 
+                    ? (session as any).location || 'Location not specified'
+                    : 'Online - Google Meet'
+                  }
+                </p>
+              </div>
+            </div>
+
+            {session.googleMeetLink && (session as any).sessionMode === 'online' && (
               <div className="flex items-start gap-4">
                 <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
                   <LinkIcon className="h-5 w-5 text-primary" />
