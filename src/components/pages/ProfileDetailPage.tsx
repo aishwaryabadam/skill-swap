@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Mail, Calendar, CheckCircle, XCircle, MessageCircle, Star } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { BaseCrudService } from '@/integrations';
 import { UserProfiles, Reviews } from '@/entities';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Image } from '@/components/ui/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useMember } from '@/integrations';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -23,6 +25,7 @@ export default function ProfileDetailPage() {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [reviewerProfiles, setReviewerProfiles] = useState<Record<string, UserProfiles>>({});
+  const [sessionModes, setSessionModes] = useState<{ online: boolean; offline: boolean }>({ online: false, offline: false });
 
   useEffect(() => {
     loadProfile();
@@ -63,20 +66,30 @@ export default function ProfileDetailPage() {
 
   const handleSendSwapRequest = async () => {
     if (!isAuthenticated || !member?._id || !id) return;
+    if (!sessionModes.online && !sessionModes.offline) {
+      alert('Please select at least one session mode');
+      return;
+    }
 
     try {
       setIsSending(true);
+      const modes = [];
+      if (sessionModes.online) modes.push('Online');
+      if (sessionModes.offline) modes.push('In-Person');
+      const modesString = modes.join(' & ');
+
       await BaseCrudService.create('swaprequests', {
         _id: crypto.randomUUID(),
         senderProfileId: member._id,
         recipientProfileId: id,
-        message: message || '',
+        message: `${message || ''}\n\nPreferred Session Mode(s): ${modesString}`,
         status: 'pending',
         sentAt: new Date(),
       });
       
       setIsDialogOpen(false);
       setMessage('');
+      setSessionModes({ online: false, offline: false });
       alert('Swap request sent successfully!');
     } catch (error) {
       console.error('Error sending swap request:', error);
@@ -415,6 +428,35 @@ export default function ProfileDetailPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4">
+                    {/* Session Mode Selection */}
+                    <div>
+                      <Label className="font-heading text-sm uppercase text-foreground mb-3 block tracking-wider">
+                        Preferred Session Mode(s) (Select at least 1)
+                      </Label>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="online-request" 
+                            checked={sessionModes.online}
+                            onCheckedChange={(checked) => setSessionModes(prev => ({ ...prev, online: checked as boolean }))}
+                          />
+                          <Label htmlFor="online-request" className="font-paragraph text-sm cursor-pointer">
+                            Online Session
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Checkbox 
+                            id="offline-request" 
+                            checked={sessionModes.offline}
+                            onCheckedChange={(checked) => setSessionModes(prev => ({ ...prev, offline: checked as boolean }))}
+                          />
+                          <Label htmlFor="offline-request" className="font-paragraph text-sm cursor-pointer">
+                            In-Person Meeting
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
                     <div>
                       <label className="font-paragraph text-sm text-foreground block mb-2">
                         Message (Optional)
@@ -437,8 +479,8 @@ export default function ProfileDetailPage() {
                       </Button>
                       <Button
                         onClick={handleSendSwapRequest}
-                        disabled={isSending}
-                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph"
+                        disabled={isSending || (!sessionModes.online && !sessionModes.offline)}
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSending ? 'Sending...' : 'Send Request'}
                       </Button>

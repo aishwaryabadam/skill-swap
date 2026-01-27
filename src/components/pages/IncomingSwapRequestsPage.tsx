@@ -148,7 +148,7 @@ export default function IncomingSwapRequestsPage() {
       case 'rejected':
         return <XCircle className="h-4 w-4" />;
       default:
-        return <MessageSquare className="h-4 w-4" />;
+        return <Clock className="h-4 w-4" />;
     }
   };
 
