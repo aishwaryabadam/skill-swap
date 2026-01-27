@@ -4,6 +4,29 @@
  */
 
 /**
+ * Collection ID: blogposts
+ * Interface for BlogPosts
+ */
+export interface BlogPosts {
+  _id: string;
+  _createdDate?: Date;
+  _updatedDate?: Date;
+  /** @wixFieldType text */
+  title?: string;
+  /** @wixFieldType text */
+  content?: string;
+  /** @wixFieldType text */
+  author?: string;
+  /** @wixFieldType text */
+  category?: string;
+  /** @wixFieldType datetime */
+  publishDate?: Date | string;
+  /** @wixFieldType image - Contains image URL, render with <Image> component, NOT as text */
+  featuredImage?: string;
+}
+
+
+/**
  * Collection ID: chatmessages
  * Interface for ChatMessages
  */

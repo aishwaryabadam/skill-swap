@@ -62,6 +62,18 @@ export default function Header() {
             >
               Browse Profiles
             </Link>
+            <Link 
+              to="/blog" 
+              className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+            >
+              Blog
+            </Link>
+            <Link 
+              to="/about" 
+              className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+            >
+              About
+            </Link>
             <a 
               href="/#how-it-works" 
               className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
@@ -134,6 +146,20 @@ export default function Header() {
               className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
             >
               Browse Profiles
+            </Link>
+            <Link 
+              to="/blog" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+            >
+              Blog
+            </Link>
+            <Link 
+              to="/about" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="font-paragraph text-base text-primary-foreground hover:underline transition-all"
+            >
+              About
             </Link>
             <a 
               href="/#how-it-works" 

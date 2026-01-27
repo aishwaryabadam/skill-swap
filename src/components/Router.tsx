@@ -12,6 +12,9 @@ import ChatPage from '@/components/pages/ChatPage';
 import SessionsPage from '@/components/pages/SessionsPage';
 import ReviewsPage from '@/components/pages/ReviewsPage';
 import TestsPage from '@/components/pages/TestsPage';
+import BlogPage from '@/components/pages/BlogPage';
+import AboutPage from '@/components/pages/AboutPage';
+import OnlineSessionPage from '@/components/pages/OnlineSessionPage';
 
 // Layout component that includes ScrollToTop
 function Layout() {
@@ -114,6 +117,31 @@ const router = createBrowserRouter([
         ),
         routeMetadata: {
           pageIdentifier: 'tests',
+        },
+      },
+      {
+        path: "blog",
+        element: <BlogPage />,
+        routeMetadata: {
+          pageIdentifier: 'blog',
+        },
+      },
+      {
+        path: "about",
+        element: <AboutPage />,
+        routeMetadata: {
+          pageIdentifier: 'about',
+        },
+      },
+      {
+        path: "session/online/:id",
+        element: (
+          <MemberProtectedRoute messageToSignIn="Sign in to join online sessions">
+            <OnlineSessionPage />
+          </MemberProtectedRoute>
+        ),
+        routeMetadata: {
+          pageIdentifier: 'online-session',
         },
       },
       {
