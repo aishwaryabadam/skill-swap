@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Calendar, Clock, MessageSquare } from 'lucide-react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { SwapRequests, UserProfiles } from '@/entities';
