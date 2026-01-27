@@ -16,6 +16,7 @@ interface BlogPost {
   category?: string;
   publishDate?: Date | string;
   featuredImage?: string;
+  externalUrl?: string;
 }
 
 export default function BlogPage() {
@@ -188,7 +189,19 @@ export default function BlogPage() {
                   </div>
 
                   {/* Read More Button */}
-                  <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph group-hover:shadow-lg transition-all">
+                  <Button 
+                    onClick={() => {
+                      if (post.externalUrl) {
+                        window.open(post.externalUrl, '_blank');
+                      }
+                    }}
+                    disabled={!post.externalUrl}
+                    className={`w-full h-11 font-paragraph group-hover:shadow-lg transition-all ${
+                      post.externalUrl 
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer' 
+                        : 'bg-secondary text-secondary-foreground cursor-not-allowed opacity-50'
+                    }`}
+                  >
                     Read More
                     <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>

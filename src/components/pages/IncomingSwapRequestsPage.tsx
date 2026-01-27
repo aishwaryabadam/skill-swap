@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, XCircle, Calendar, Clock, MessageSquare, Radio } from 'lucide-react';
+import { CheckCircle, XCircle, Calendar, Clock, MessageSquare } from 'lucide-react';
 import { useMember } from '@/integrations';
 import { BaseCrudService } from '@/integrations';
 import { SwapRequests, UserProfiles } from '@/entities';
@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Image } from '@/components/ui/image';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Checkbox } from '@/components/ui/checkbox';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { format } from 'date-fns';
@@ -26,7 +26,7 @@ export default function IncomingSwapRequestsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRequest, setSelectedRequest] = useState<SwapRequestWithSender | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
-  const [sessionMode, setSessionMode] = useState<'online' | 'offline'>('online');
+  const [sessionModes, setSessionModes] = useState<{ online: boolean; offline: boolean }>({ online: false, offline: false });
   const [meetingDetails, setMeetingDetails] = useState({
     date: '',
     time: '',
@@ -71,7 +71,7 @@ export default function IncomingSwapRequestsPage() {
 
   const handleConfirmRequest = (request: SwapRequestWithSender) => {
     setSelectedRequest(request);
-    setSessionMode('online');
+    setSessionModes({ online: false, offline: false });
     setMeetingDetails({
       date: '',
       time: '',
@@ -87,11 +87,17 @@ export default function IncomingSwapRequestsPage() {
     try {
       setIsConfirming(true);
       
+      // Build session modes string
+      const modes = [];
+      if (sessionModes.online) modes.push('Online');
+      if (sessionModes.offline) modes.push('In-Person');
+      const modesString = modes.join(' & ');
+      
       // Update the swap request status to 'confirmed'
       await BaseCrudService.update<SwapRequests>('swaprequests', {
         _id: selectedRequest._id,
         status: 'confirmed',
-        message: `Meeting confirmed - ${meetingDetails.date} at ${meetingDetails.time}${sessionMode === 'offline' ? ` in ${meetingDetails.location}` : ' (Online)'}. ${meetingDetails.notes}`
+        message: `Meeting confirmed - ${meetingDetails.date} at ${meetingDetails.time} (${modesString})${sessionModes.offline ? ` in ${meetingDetails.location}` : ''}. ${meetingDetails.notes}`
       });
 
       // Reload requests
@@ -331,22 +337,30 @@ export default function IncomingSwapRequestsPage() {
             {/* Session Mode Selection */}
             <div>
               <Label className="font-heading text-sm uppercase text-foreground mb-3 block tracking-wider">
-                Session Mode
+                Session Modes (Select at least 1)
               </Label>
-              <RadioGroup value={sessionMode} onValueChange={(value) => setSessionMode(value as 'online' | 'offline')}>
-                <div className="flex items-center space-x-2 mb-3">
-                  <RadioGroupItem value="online" id="online" />
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="online" 
+                    checked={sessionModes.online}
+                    onCheckedChange={(checked) => setSessionModes(prev => ({ ...prev, online: checked as boolean }))}
+                  />
                   <Label htmlFor="online" className="font-paragraph text-sm cursor-pointer">
                     Online Session
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="offline" id="offline" />
+                  <Checkbox 
+                    id="offline" 
+                    checked={sessionModes.offline}
+                    onCheckedChange={(checked) => setSessionModes(prev => ({ ...prev, offline: checked as boolean }))}
+                  />
                   <Label htmlFor="offline" className="font-paragraph text-sm cursor-pointer">
                     In-Person Meeting
                   </Label>
                 </div>
-              </RadioGroup>
+              </div>
             </div>
 
             {/* Date */}
@@ -378,7 +392,7 @@ export default function IncomingSwapRequestsPage() {
             </div>
 
             {/* Location - Only for Offline */}
-            {sessionMode === 'offline' && (
+            {sessionModes.offline && (
               <div>
                 <Label htmlFor="location" className="font-heading text-sm uppercase text-foreground mb-2 block">
                   Location
@@ -418,8 +432,8 @@ export default function IncomingSwapRequestsPage() {
               </Button>
               <Button
                 onClick={handleSaveConfirmation}
-                disabled={isConfirming || !meetingDetails.date || !meetingDetails.time || (sessionMode === 'offline' && !meetingDetails.location)}
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph"
+                disabled={isConfirming || !meetingDetails.date || !meetingDetails.time || (!sessionModes.online && !sessionModes.offline) || (sessionModes.offline && !meetingDetails.location)}
+                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 h-11 font-paragraph disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isConfirming ? 'Confirming...' : 'Confirm Meeting'}
               </Button>
