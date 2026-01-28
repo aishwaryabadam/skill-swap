@@ -47,6 +47,7 @@ export default function OnlineSessionPage() {
   const [newMessage, setNewMessage] = useState('');
   const [sessionTime, setSessionTime] = useState('00:00:00');
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Whiteboard states
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -119,6 +120,34 @@ export default function OnlineSessionPage() {
       }
     }
   }, []);
+
+  // Initialize video capture
+  useEffect(() => {
+    if (!isVideoOn) return;
+
+    const startVideoCapture = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'user' },
+          audio: isMicOn
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+      }
+    };
+
+    startVideoCapture();
+
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    };
+  }, [isVideoOn, isMicOn]);
 
   // Session timer
   useEffect(() => {
@@ -336,128 +365,6 @@ export default function OnlineSessionPage() {
       <Header />
 
       <div className="w-full h-[calc(100vh-80px)] flex flex-col md:flex-row bg-black">
-        {/* Left Sidebar - Videos & Chat */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full md:w-80 bg-black border-r border-neutralborder flex flex-col"
-        >
-          {/* Video Feeds - Top */}
-          <div className="flex-shrink-0 space-y-3 p-4 border-b border-neutralborder">
-            {/* Your Video */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg overflow-hidden shadow-lg h-32"
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                {isVideoOn ? (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
-                    <div className="text-center">
-                      <Video className="w-8 h-8 text-primary mx-auto mb-2" />
-                      <p className="font-paragraph text-primary text-xs">Your Video</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full bg-foreground flex items-center justify-center">
-                    <div className="text-center">
-                      <VideoOff className="w-8 h-8 text-secondary-foreground mx-auto mb-2" />
-                      <p className="font-paragraph text-secondary-foreground text-xs">Video Off</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-full">
-                <p className="font-paragraph text-xs text-white">You</p>
-              </div>
-            </motion.div>
-
-            {/* Participant Video */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-lg overflow-hidden shadow-lg h-32"
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center">
-                  <Users className="w-8 h-8 text-secondary-foreground mx-auto mb-2" />
-                  <p className="font-paragraph text-secondary-foreground text-xs">{otherUser?.fullName || 'Participant'}</p>
-                </div>
-              </div>
-              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-full">
-                <p className="font-paragraph text-xs text-white">{otherUser?.fullName || 'Participant'}</p>
-              </div>
-            </motion.div>
-          </div>
-
-          {/* Chat - Bottom */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Chat Header */}
-            <div className="border-b border-neutralborder p-3 bg-black/50">
-              <p className="font-heading text-xs uppercase text-primary tracking-wider">Chat</p>
-            </div>
-
-            {/* Chat Area */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
-              {chatMessages.length === 0 && (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="text-center py-6"
-                >
-                  <p className="font-paragraph text-xs text-secondary-foreground">
-                    No messages yet. Start the conversation!
-                  </p>
-                </motion.div>
-              )}
-              {chatMessages.map((msg) => (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className={`flex ${msg.sender === member?._id ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs px-3 py-2 rounded-lg text-xs ${
-                      msg.sender === member?._id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-foreground'
-                    }`}
-                  >
-                    <p className="font-paragraph text-xs opacity-70 mb-1">{msg.senderName}</p>
-                    <p className="font-paragraph text-xs">{msg.message}</p>
-                    <p className="font-paragraph text-xs opacity-70 mt-1">{msg.timestamp}</p>
-                  </div>
-                </motion.div>
-              ))}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Chat Input */}
-            <div className="border-t border-neutralborder p-3 space-y-2 bg-black/50">
-              <div className="flex gap-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Type a message..."
-                  className="flex-1 h-8 text-xs font-paragraph"
-                />
-                <Button
-                  onClick={handleSendMessage}
-                  className="h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                >
-                  <MessageSquare className="w-3 h-3" />
-                </Button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Main Area - Whiteboard & Controls */}
         <div className="flex-1 flex flex-col">
           {/* Whiteboard */}
@@ -644,6 +551,130 @@ export default function OnlineSessionPage() {
             </div>
           </motion.div>
         </div>
+
+        {/* Right Sidebar - Videos & Chat (Compact) */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full md:w-72 bg-black border-l border-neutralborder flex flex-col"
+        >
+          {/* Video Feeds - Top (Horizontal Stack) */}
+          <div className="flex-shrink-0 p-3 border-b border-neutralborder">
+            <div className="flex gap-2">
+              {/* Your Video */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+                className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg overflow-hidden shadow-lg w-32 h-32 flex-shrink-0"
+              >
+                {isVideoOn ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute bottom-1 left-1 bg-black/60 px-2 py-0.5 rounded-full">
+                      <p className="font-paragraph text-xs text-white">You</p>
+                    </div>
+                  </>
+                ) : (
+                  <div className="w-full h-full bg-foreground flex items-center justify-center">
+                    <div className="text-center">
+                      <VideoOff className="w-6 h-6 text-secondary-foreground mx-auto mb-1" />
+                      <p className="font-paragraph text-secondary-foreground text-xs">Video Off</p>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Participant Video */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-lg overflow-hidden shadow-lg w-32 h-32 flex-shrink-0"
+              >
+                <div className="w-full h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <Users className="w-6 h-6 text-secondary-foreground mx-auto mb-1" />
+                    <p className="font-paragraph text-secondary-foreground text-xs">{otherUser?.fullName || 'Participant'}</p>
+                  </div>
+                </div>
+                <div className="absolute bottom-1 left-1 bg-black/60 px-2 py-0.5 rounded-full">
+                  <p className="font-paragraph text-xs text-white">{otherUser?.fullName?.split(' ')[0] || 'P'}</p>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Chat - Bottom */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Chat Header */}
+            <div className="border-b border-neutralborder p-2 bg-black/50">
+              <p className="font-heading text-xs uppercase text-primary tracking-wider">Chat</p>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {chatMessages.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-4"
+                >
+                  <p className="font-paragraph text-xs text-secondary-foreground">
+                    No messages yet
+                  </p>
+                </motion.div>
+              )}
+              {chatMessages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`flex ${msg.sender === member?._id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-2 py-1 rounded text-xs ${
+                      msg.sender === member?._id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-foreground'
+                    }`}
+                  >
+                    <p className="font-paragraph text-xs opacity-70">{msg.senderName}</p>
+                    <p className="font-paragraph text-xs">{msg.message}</p>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t border-neutralborder p-2 space-y-1 bg-black/50">
+              <div className="flex gap-1">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Message..."
+                  className="flex-1 h-7 text-xs font-paragraph"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  className="h-7 px-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
       </div>
 
       <Footer />
