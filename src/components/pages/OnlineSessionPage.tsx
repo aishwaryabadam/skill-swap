@@ -336,35 +336,40 @@ export default function OnlineSessionPage() {
       <Header />
 
       <div className="w-full h-[calc(100vh-80px)] flex flex-col md:flex-row bg-black">
-        {/* Main Video Area */}
-        <div className="flex-1 flex flex-col">
-          {/* Video Grid */}
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black">
+        {/* Left Sidebar - Videos & Chat */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="w-full md:w-80 bg-black border-r border-neutralborder flex flex-col"
+        >
+          {/* Video Feeds - Top */}
+          <div className="flex-shrink-0 space-y-3 p-4 border-b border-neutralborder">
             {/* Your Video */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
-              className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-2xl overflow-hidden shadow-lg"
+              className="relative bg-gradient-to-br from-primary/20 to-primary/10 rounded-lg overflow-hidden shadow-lg h-32"
             >
               <div className="w-full h-full flex items-center justify-center">
                 {isVideoOn ? (
                   <div className="w-full h-full bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center">
                     <div className="text-center">
-                      <Video className="w-16 h-16 text-primary mx-auto mb-4" />
-                      <p className="font-paragraph text-primary text-sm">Your Video</p>
+                      <Video className="w-8 h-8 text-primary mx-auto mb-2" />
+                      <p className="font-paragraph text-primary text-xs">Your Video</p>
                     </div>
                   </div>
                 ) : (
                   <div className="w-full h-full bg-foreground flex items-center justify-center">
                     <div className="text-center">
-                      <VideoOff className="w-16 h-16 text-secondary-foreground mx-auto mb-4" />
-                      <p className="font-paragraph text-secondary-foreground text-sm">Video Off</p>
+                      <VideoOff className="w-8 h-8 text-secondary-foreground mx-auto mb-2" />
+                      <p className="font-paragraph text-secondary-foreground text-xs">Video Off</p>
                     </div>
                   </div>
                 )}
               </div>
-              <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full">
+              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-full">
                 <p className="font-paragraph text-xs text-white">You</p>
               </div>
             </motion.div>
@@ -374,26 +379,204 @@ export default function OnlineSessionPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-2xl overflow-hidden shadow-lg"
+              className="relative bg-gradient-to-br from-secondary/20 to-secondary/10 rounded-lg overflow-hidden shadow-lg h-32"
             >
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">
-                  <Users className="w-16 h-16 text-secondary-foreground mx-auto mb-4" />
-                  <p className="font-paragraph text-secondary-foreground text-sm">{otherUser?.fullName || 'Participant'}</p>
+                  <Users className="w-8 h-8 text-secondary-foreground mx-auto mb-2" />
+                  <p className="font-paragraph text-secondary-foreground text-xs">{otherUser?.fullName || 'Participant'}</p>
                 </div>
               </div>
-              <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full">
+              <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded-full">
                 <p className="font-paragraph text-xs text-white">{otherUser?.fullName || 'Participant'}</p>
               </div>
             </motion.div>
           </div>
+
+          {/* Chat - Bottom */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Chat Header */}
+            <div className="border-b border-neutralborder p-3 bg-black/50">
+              <p className="font-heading text-xs uppercase text-primary tracking-wider">Chat</p>
+            </div>
+
+            {/* Chat Area */}
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+              {chatMessages.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-6"
+                >
+                  <p className="font-paragraph text-xs text-secondary-foreground">
+                    No messages yet. Start the conversation!
+                  </p>
+                </motion.div>
+              )}
+              {chatMessages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`flex ${msg.sender === member?._id ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs px-3 py-2 rounded-lg text-xs ${
+                      msg.sender === member?._id
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-foreground'
+                    }`}
+                  >
+                    <p className="font-paragraph text-xs opacity-70 mb-1">{msg.senderName}</p>
+                    <p className="font-paragraph text-xs">{msg.message}</p>
+                    <p className="font-paragraph text-xs opacity-70 mt-1">{msg.timestamp}</p>
+                  </div>
+                </motion.div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Input */}
+            <div className="border-t border-neutralborder p-3 space-y-2 bg-black/50">
+              <div className="flex gap-2">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type a message..."
+                  className="flex-1 h-8 text-xs font-paragraph"
+                />
+                <Button
+                  onClick={handleSendMessage}
+                  className="h-8 px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <MessageSquare className="w-3 h-3" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Main Area - Whiteboard & Controls */}
+        <div className="flex-1 flex flex-col">
+          {/* Whiteboard */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="flex-1 flex flex-col bg-white overflow-hidden"
+          >
+            {/* Whiteboard Toolbar */}
+            <div className="border-b border-neutralborder p-3 bg-secondary space-y-2 flex-shrink-0">
+              <div className="flex gap-2 items-center justify-between">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setDrawingMode('pen')}
+                    className={`h-8 px-3 flex items-center justify-center gap-2 rounded-lg transition-colors text-xs ${
+                      drawingMode === 'pen'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-foreground hover:bg-background/80'
+                    }`}
+                  >
+                    <Pen className="w-3 h-3" />
+                    <span className="font-paragraph">Pen</span>
+                  </Button>
+                  <Button
+                    onClick={() => setDrawingMode('eraser')}
+                    className={`h-8 px-3 flex items-center justify-center gap-2 rounded-lg transition-colors text-xs ${
+                      drawingMode === 'eraser'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-background text-foreground hover:bg-background/80'
+                    }`}
+                  >
+                    <Eraser className="w-3 h-3" />
+                    <span className="font-paragraph">Eraser</span>
+                  </Button>
+                </div>
+
+                {/* Color Picker */}
+                {drawingMode === 'pen' && (
+                  <div className="flex gap-2 items-center">
+                    <Palette className="w-3 h-3 text-secondary-foreground" />
+                    <div className="flex gap-1">
+                      {['#000000', '#FF0000', '#00AA00', '#0000FF', '#FFAA00', '#FF00FF'].map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => setBrushColor(color)}
+                          className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                            brushColor === color ? 'border-foreground scale-110' : 'border-transparent'
+                          }`}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Brush Size */}
+                <div className="flex gap-2 items-center">
+                  <label className="text-xs font-paragraph text-secondary-foreground">Size:</label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(Number(e.target.value))}
+                    className="w-20 h-2 bg-background rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs font-paragraph text-secondary-foreground w-4">{brushSize}</span>
+                </div>
+
+                {/* Image Upload */}
+                <label className="h-8 px-3 flex items-center justify-center gap-2 bg-background text-foreground hover:bg-background/80 rounded-lg cursor-pointer transition-colors text-xs">
+                  <ImageIcon className="w-3 h-3" />
+                  <span className="font-paragraph">Image</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Action Buttons */}
+                <Button
+                  onClick={handleClearWhiteboard}
+                  className="h-8 px-3 flex items-center justify-center gap-2 bg-destructive text-destructiveforeground hover:bg-destructive/90 rounded-lg text-xs"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span className="font-paragraph">Clear</span>
+                </Button>
+                <Button
+                  onClick={handleDownloadWhiteboard}
+                  className="h-8 px-3 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg text-xs"
+                >
+                  <Download className="w-3 h-3" />
+                  <span className="font-paragraph">Save</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Canvas */}
+            <div className="flex-1 overflow-hidden">
+              <canvas
+                ref={canvasRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                className="w-full h-full cursor-crosshair"
+              />
+            </div>
+          </motion.div>
 
           {/* Session Controls */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="bg-black/80 backdrop-blur-md border-t border-neutralborder p-4 flex items-center justify-between"
+            className="bg-black/80 backdrop-blur-md border-t border-neutralborder p-4 flex items-center justify-between flex-shrink-0"
           >
             {/* Left: Session Info */}
             <div className="flex items-center gap-4">
@@ -434,6 +617,7 @@ export default function OnlineSessionPage() {
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                     : 'bg-secondary-foreground text-background hover:bg-secondary-foreground/90'
                 }`}
+                title="Screen Share"
               >
                 <Share2 className="w-5 h-5" />
               </Button>
@@ -460,230 +644,6 @@ export default function OnlineSessionPage() {
             </div>
           </motion.div>
         </div>
-
-        {/* Right Sidebar - Chat & Whiteboard */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full md:w-96 bg-secondary border-l border-neutralborder flex flex-col"
-        >
-          {/* Tabs */}
-          <div className="flex border-b border-neutralborder">
-            <button 
-              onClick={() => setActiveTab('chat')}
-              className={`flex-1 py-4 px-4 font-heading text-sm uppercase tracking-wider transition-colors ${
-                activeTab === 'chat'
-                  ? 'bg-primary text-primary-foreground border-b-2 border-primary'
-                  : 'text-secondary-foreground hover:bg-background/50'
-              }`}
-            >
-              Chat
-            </button>
-            <button 
-              onClick={() => setActiveTab('whiteboard')}
-              className={`flex-1 py-4 px-4 font-heading text-sm uppercase tracking-wider transition-colors ${
-                activeTab === 'whiteboard'
-                  ? 'bg-primary text-primary-foreground border-b-2 border-primary'
-                  : 'text-secondary-foreground hover:bg-background/50'
-              }`}
-            >
-              Whiteboard
-            </button>
-          </div>
-
-          {/* Chat Tab */}
-          {activeTab === 'chat' && (
-            <>
-              {/* Chat Area */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {chatMessages.length === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="text-center py-8"
-                  >
-                    <p className="font-paragraph text-sm text-secondary-foreground">
-                      No messages yet. Start the conversation!
-                    </p>
-                  </motion.div>
-                )}
-                {chatMessages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`flex ${msg.sender === member?._id ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-xs px-4 py-2 rounded-2xl ${
-                        msg.sender === member?._id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-background text-foreground'
-                      }`}
-                    >
-                      <p className="font-paragraph text-xs opacity-70 mb-1">{msg.senderName}</p>
-                      <p className="font-paragraph text-sm">{msg.message}</p>
-                      <p className="font-paragraph text-xs opacity-70 mt-1">{msg.timestamp}</p>
-                    </div>
-                  </motion.div>
-                ))}
-                <div ref={chatEndRef} />
-              </div>
-
-              {/* Chat Input */}
-              <div className="border-t border-neutralborder p-4 space-y-3">
-                <div className="flex gap-2">
-                  <Input
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Type a message..."
-                    className="flex-1 h-10 font-paragraph"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    className="h-10 px-4 bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <MessageSquare className="w-4 h-4" />
-                  </Button>
-                </div>
-
-                {/* Meeting Link Copy */}
-                <div className="bg-background p-3 rounded-lg">
-                  <p className="font-heading text-xs uppercase text-secondary-foreground mb-2 tracking-wider">
-                    Meeting Link
-                  </p>
-                  <div className="flex gap-2">
-                    <Input
-                      value={window.location.href}
-                      readOnly
-                      className="flex-1 h-9 text-xs font-paragraph bg-foreground/5"
-                    />
-                    <Button
-                      onClick={handleCopyMeetingLink}
-                      className="h-9 px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Whiteboard Tab */}
-          {activeTab === 'whiteboard' && (
-            <div className="flex-1 flex flex-col">
-              {/* Whiteboard Toolbar */}
-              <div className="border-b border-neutralborder p-3 space-y-3">
-                {/* Drawing Mode */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={() => setDrawingMode('pen')}
-                    className={`flex-1 h-9 flex items-center justify-center gap-2 rounded-lg transition-colors ${
-                      drawingMode === 'pen'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-foreground hover:bg-background/80'
-                    }`}
-                  >
-                    <Pen className="w-4 h-4" />
-                    <span className="text-xs font-paragraph">Pen</span>
-                  </Button>
-                  <Button
-                    onClick={() => setDrawingMode('eraser')}
-                    className={`flex-1 h-9 flex items-center justify-center gap-2 rounded-lg transition-colors ${
-                      drawingMode === 'eraser'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-background text-foreground hover:bg-background/80'
-                    }`}
-                  >
-                    <Eraser className="w-4 h-4" />
-                    <span className="text-xs font-paragraph">Eraser</span>
-                  </Button>
-                </div>
-
-                {/* Color Picker */}
-                {drawingMode === 'pen' && (
-                  <div className="flex gap-2 items-center">
-                    <Palette className="w-4 h-4 text-secondary-foreground" />
-                    <div className="flex gap-2 flex-wrap">
-                      {['#000000', '#FF0000', '#00AA00', '#0000FF', '#FFAA00', '#FF00FF'].map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => setBrushColor(color)}
-                          className={`w-6 h-6 rounded-full border-2 transition-transform ${
-                            brushColor === color ? 'border-foreground scale-110' : 'border-transparent'
-                          }`}
-                          style={{ backgroundColor: color }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Brush Size */}
-                <div className="flex gap-2 items-center">
-                  <label className="text-xs font-paragraph text-secondary-foreground">Size:</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="20"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="flex-1 h-2 bg-background rounded-lg appearance-none cursor-pointer"
-                  />
-                  <span className="text-xs font-paragraph text-secondary-foreground w-6">{brushSize}</span>
-                </div>
-
-                {/* Image Upload */}
-                <div className="flex gap-2">
-                  <label className="flex-1 h-9 flex items-center justify-center gap-2 bg-background text-foreground hover:bg-background/80 rounded-lg cursor-pointer transition-colors">
-                    <ImageIcon className="w-4 h-4" />
-                    <span className="text-xs font-paragraph">Add Image</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleClearWhiteboard}
-                    className="flex-1 h-9 flex items-center justify-center gap-2 bg-destructive text-destructiveforeground hover:bg-destructive/90 rounded-lg"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    <span className="text-xs font-paragraph">Clear</span>
-                  </Button>
-                  <Button
-                    onClick={handleDownloadWhiteboard}
-                    className="flex-1 h-9 flex items-center justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
-                  >
-                    <Download className="w-4 h-4" />
-                    <span className="text-xs font-paragraph">Save</span>
-                  </Button>
-                </div>
-              </div>
-
-              {/* Canvas */}
-              <div className="flex-1 bg-white overflow-hidden">
-                <canvas
-                  ref={canvasRef}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                  onMouseUp={handleMouseUp}
-                  onMouseLeave={handleMouseUp}
-                  className="w-full h-full cursor-crosshair"
-                />
-              </div>
-            </div>
-          )}
-        </motion.div>
       </div>
 
       <Footer />
