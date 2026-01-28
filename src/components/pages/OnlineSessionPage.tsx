@@ -54,8 +54,9 @@ export default function OnlineSessionPage() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [drawingMode, setDrawingMode] = useState<'pen' | 'eraser'>('pen');
   const [brushColor, setBrushColor] = useState('#000000');
-  const [brushSize, setBrushSize] = useState(3);
+  const [brushSize, setBrushSize] = useState(2);
   const [lastPoint, setLastPoint] = useState<DrawingPoint | null>(null);
+  const canvasOffsetRef = useRef({ x: 0, y: 0 });
 
   // Load session data
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function OnlineSessionPage() {
       const rect = canvas.getBoundingClientRect();
       canvas.width = rect.width;
       canvas.height = rect.height;
+      canvasOffsetRef.current = { x: rect.left, y: rect.top };
       const ctx = canvas.getContext('2d');
       if (ctx) {
         ctx.fillStyle = 'white';
@@ -211,14 +213,15 @@ export default function OnlineSessionPage() {
     ctx.lineWidth = brushSize;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = drawingMode === 'eraser' ? 'destination-out' : 'source-over';
 
     if (drawingMode === 'eraser') {
-      ctx.clearRect(toX - brushSize / 2, toY - brushSize / 2, brushSize, brushSize);
-      ctx.strokeStyle = 'transparent';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
     } else {
       ctx.strokeStyle = brushColor;
     }
     ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
   };
 
   const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -427,7 +430,7 @@ export default function OnlineSessionPage() {
                   <input
                     type="range"
                     min="1"
-                    max="20"
+                    max="8"
                     value={brushSize}
                     onChange={(e) => setBrushSize(Number(e.target.value))}
                     className="w-20 h-2 bg-background rounded-lg appearance-none cursor-pointer"
@@ -466,14 +469,15 @@ export default function OnlineSessionPage() {
             </div>
 
             {/* Canvas */}
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden relative">
               <canvas
                 ref={canvasRef}
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
-                className="w-full h-full cursor-crosshair"
+                className="w-full h-full"
+                style={{ cursor: `url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="%23000000"/><circle cx="12" cy="12" r="8" fill="none" stroke="%23000000" stroke-width="1"/></svg>') 12 12, auto` }}
               />
             </div>
           </motion.div>
