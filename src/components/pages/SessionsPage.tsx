@@ -64,7 +64,8 @@ export default function SessionsPage() {
     skillTopic: '',
     description: '',
     sessionMode: 'online',
-    location: ''
+    location: '',
+    googleMapsLink: ''
   });
 
   useEffect(() => {
@@ -122,7 +123,10 @@ export default function SessionsPage() {
         sessionTitle: (session as any).sessionTitle || '',
         duration: (session as any).duration || '',
         skillTopic: (session as any).skillTopic || '',
-        description: (session as any).description || ''
+        description: (session as any).description || '',
+        sessionMode: (session as any).sessionMode || 'online',
+        location: (session as any).location || '',
+        googleMapsLink: (session as any).googleMapsLink || ''
       });
     } else {
       setIsEditMode(false);
@@ -135,15 +139,30 @@ export default function SessionsPage() {
         sessionTitle: '',
         duration: '',
         skillTopic: '',
-        description: ''
+        description: '',
+        sessionMode: 'online',
+        location: '',
+        googleMapsLink: ''
       });
     }
     setIsDialogOpen(true);
   };
 
   const handleSaveSession = async () => {
-    if (!member?._id || !formData.googleMeetLink || !formData.scheduledDateTime || !formData.participantId || !formData.sessionTitle) {
+    // Validate required fields
+    if (!member?._id || !formData.scheduledDateTime || !formData.participantId || !formData.sessionTitle) {
       alert('Please fill in all required fields');
+      return;
+    }
+
+    // Validate mode-specific fields
+    if (formData.sessionMode === 'online' && !formData.googleMeetLink) {
+      alert('Please provide a Google Meet link for online sessions');
+      return;
+    }
+
+    if (formData.sessionMode === 'offline' && !formData.location) {
+      alert('Please provide a location for offline sessions');
       return;
     }
 
@@ -154,20 +173,24 @@ export default function SessionsPage() {
         // Update existing session
         await BaseCrudService.update<Session>('sessions', {
           _id: selectedSession._id,
-          googleMeetLink: formData.googleMeetLink,
+          googleMeetLink: formData.sessionMode === 'online' ? formData.googleMeetLink : undefined,
           scheduledDateTime: new Date(formData.scheduledDateTime),
           participantId: formData.participantId,
-          sessionStatus: formData.sessionStatus
+          sessionStatus: formData.sessionStatus,
+          sessionMode: formData.sessionMode,
+          location: formData.sessionMode === 'offline' ? formData.location : undefined
         });
       } else {
         // Create new session
         await BaseCrudService.create('sessions', {
           _id: crypto.randomUUID(),
-          googleMeetLink: formData.googleMeetLink,
+          googleMeetLink: formData.sessionMode === 'online' ? formData.googleMeetLink : undefined,
           scheduledDateTime: new Date(formData.scheduledDateTime),
           hostId: member._id,
           participantId: formData.participantId,
-          sessionStatus: formData.sessionStatus
+          sessionStatus: formData.sessionStatus,
+          sessionMode: formData.sessionMode,
+          location: formData.sessionMode === 'offline' ? formData.location : undefined
         });
       }
 
@@ -651,8 +674,8 @@ export default function SessionsPage() {
                 onChange={(e) => setFormData(prev => ({ ...prev, sessionMode: e.target.value }))}
                 className="w-full font-paragraph h-11 px-3 border border-neutralborder rounded-sm"
               >
-                <option value="online">Online (Google Meet)</option>
-                <option value="in-person">In-Person</option>
+                <option value="online">Online</option>
+                <option value="offline">Offline</option>
               </select>
             </div>
 
@@ -672,20 +695,34 @@ export default function SessionsPage() {
               </div>
             )}
 
-            {/* Location - Only for In-Person */}
-            {formData.sessionMode === 'in-person' && (
-              <div>
-                <Label htmlFor="location" className="font-heading text-sm uppercase text-foreground mb-2 block">
-                  Location *
-                </Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="e.g., Coffee Shop, Library, etc."
-                  className="font-paragraph h-11"
-                />
-              </div>
+            {/* Location & Google Maps - Only for Offline */}
+            {formData.sessionMode === 'offline' && (
+              <>
+                <div>
+                  <Label htmlFor="location" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                    Location *
+                  </Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., Coffee Shop, Library, etc."
+                    className="font-paragraph h-11"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="googleMapsLink" className="font-heading text-sm uppercase text-foreground mb-2 block">
+                    Google Maps Link
+                  </Label>
+                  <Input
+                    id="googleMapsLink"
+                    value={(formData as any).googleMapsLink || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, googleMapsLink: e.target.value } as any))}
+                    placeholder="https://maps.google.com/..."
+                    className="font-paragraph h-11"
+                  />
+                </div>
+              </>
             )}
 
             {/* Session Status */}
@@ -805,7 +842,7 @@ function SessionCard({
             {/* Session Mode Indicator */}
             <div className="flex items-center gap-4">
               <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-                {(session as any).sessionMode === 'in-person' ? (
+                {(session as any).sessionMode === 'offline' ? (
                   <MapPin className="h-5 w-5 text-primary" />
                 ) : (
                   <Video className="h-5 w-5 text-primary" />
@@ -813,16 +850,36 @@ function SessionCard({
               </div>
               <div>
                 <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">
-                  {(session as any).sessionMode === 'in-person' ? 'Location' : 'Session Type'}
+                  {(session as any).sessionMode === 'offline' ? 'Location' : 'Session Type'}
                 </p>
                 <p className="font-paragraph text-base text-foreground font-medium">
-                  {(session as any).sessionMode === 'in-person' 
+                  {(session as any).sessionMode === 'offline' 
                     ? (session as any).location || 'Location not specified'
-                    : 'Online - Google Meet'
+                    : 'Online'
                   }
                 </p>
               </div>
             </div>
+
+            {/* Google Maps Link - Only for Offline */}
+            {(session as any).sessionMode === 'offline' && (session as any).googleMapsLink && (
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
+                  <LinkIcon className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-heading text-xs uppercase text-foreground/70 tracking-wider">Google Maps</p>
+                  <a
+                    href={(session as any).googleMapsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-paragraph text-base text-primary hover:underline break-all font-medium"
+                  >
+                    View Location on Maps
+                  </a>
+                </div>
+              </div>
+            )}
 
             {session.googleMeetLink && (session as any).sessionMode === 'online' && (
               <div className="flex items-start gap-4">
@@ -847,24 +904,64 @@ function SessionCard({
           {/* Action Buttons */}
           <div className="flex gap-3 flex-wrap">
             {isTeaching && !isCompleted && (
-              <Button
-                onClick={async () => {
-                  try {
-                    await BaseCrudService.update<Session>('sessions', {
-                      _id: session._id,
-                      sessionStatus: 'completed'
-                    });
-                    window.location.reload();
-                  } catch (error) {
-                    console.error('Error updating session status:', error);
-                    alert('Failed to mark session as completed.');
-                  }
-                }}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Mark Completed
-              </Button>
+              <>
+                {(session as any).sessionMode === 'online' && (
+                  <Button
+                    onClick={() => {
+                      const sessionTime = new Date(session.scheduledDateTime || '');
+                      const now = new Date();
+                      if (now >= sessionTime) {
+                        window.location.href = `/session/online/${session._id}`;
+                      } else {
+                        alert('The meeting will be available at the scheduled time.');
+                      }
+                    }}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    <Video className="mr-2 h-4 w-4" />
+                    Start Meet
+                  </Button>
+                )}
+                <Button
+                  onClick={async () => {
+                    try {
+                      await BaseCrudService.update<Session>('sessions', {
+                        _id: session._id,
+                        sessionStatus: 'completed'
+                      });
+                      window.location.reload();
+                    } catch (error) {
+                      console.error('Error updating session status:', error);
+                      alert('Failed to mark session as completed.');
+                    }
+                  }}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+                >
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Mark Completed
+                </Button>
+              </>
+            )}
+            {!isTeaching && !isCompleted && (
+              <>
+                {(session as any).sessionMode === 'online' && (
+                  <Button
+                    onClick={() => {
+                      const sessionTime = new Date(session.scheduledDateTime || '');
+                      const now = new Date();
+                      if (now >= sessionTime) {
+                        window.location.href = `/session/online/${session._id}`;
+                      } else {
+                        alert('The meeting will be available at the scheduled time.');
+                      }
+                    }}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-6 font-paragraph font-medium shadow-md hover:shadow-lg transition-all"
+                  >
+                    <Video className="mr-2 h-4 w-4" />
+                    Join Meet
+                  </Button>
+                )}
+              </>
             )}
             {isTeaching && isCompleted && (
               <Button

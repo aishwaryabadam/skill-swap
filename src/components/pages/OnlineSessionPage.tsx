@@ -1,18 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Mic, MicOff, Video, VideoOff, Phone, MessageSquare, Share2, 
   Settings, Copy, Users, Clock, Pen, Eraser, Palette, Image as ImageIcon,
-  Download, RotateCcw, X
+  Download, RotateCcw, X, AlertCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { BaseCrudService } from '@/integrations';
+import { useMember } from '@/integrations';
+import { Sessions, UserProfiles } from '@/entities';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import { format } from 'date-fns';
 
 interface ChatMessage {
   id: string;
   sender: string;
+  senderName: string;
   message: string;
   timestamp: string;
 }
@@ -23,26 +30,22 @@ interface DrawingPoint {
 }
 
 export default function OnlineSessionPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { member } = useMember();
+  
+  const [session, setSession] = useState<Sessions | null>(null);
+  const [otherUser, setOtherUser] = useState<UserProfiles | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [sessionNotStarted, setSessionNotStarted] = useState(false);
+  
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [activeTab, setActiveTab] = useState<'chat' | 'whiteboard'>('chat');
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      sender: 'You',
-      message: 'Hi! Ready to start the session?',
-      timestamp: '10:30 AM'
-    },
-    {
-      id: '2',
-      sender: 'Participant',
-      message: 'Yes, let\'s begin! I\'m excited to learn.',
-      timestamp: '10:31 AM'
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [sessionTime, setSessionTime] = useState('00:15:32');
+  const [sessionTime, setSessionTime] = useState('00:00:00');
   const chatEndRef = useRef<HTMLDivElement>(null);
   
   // Whiteboard states
@@ -52,6 +55,55 @@ export default function OnlineSessionPage() {
   const [brushColor, setBrushColor] = useState('#000000');
   const [brushSize, setBrushSize] = useState(3);
   const [lastPoint, setLastPoint] = useState<DrawingPoint | null>(null);
+
+  // Load session data
+  useEffect(() => {
+    const loadSession = async () => {
+      if (!id || !member?._id) return;
+
+      try {
+        setIsLoading(true);
+        const sessionData = await BaseCrudService.getById<Sessions>('sessions', id);
+        
+        if (!sessionData) {
+          navigate('/sessions');
+          return;
+        }
+
+        // Check if user is part of this session
+        const isParticipant = sessionData.hostId === member._id || sessionData.participantId === member._id;
+        if (!isParticipant) {
+          navigate('/sessions');
+          return;
+        }
+
+        // Check if session time has started
+        const sessionStartTime = new Date(sessionData.scheduledDateTime || '');
+        const now = new Date();
+        if (now < sessionStartTime) {
+          setSessionNotStarted(true);
+          setIsLoading(false);
+          return;
+        }
+
+        setSession(sessionData);
+
+        // Load other user's profile
+        const otherUserId = sessionData.hostId === member._id ? sessionData.participantId : sessionData.hostId;
+        if (otherUserId) {
+          const profile = await BaseCrudService.getById<UserProfiles>('userprofiles', otherUserId);
+          setOtherUser(profile);
+        }
+      } catch (error) {
+        console.error('Error loading session:', error);
+        navigate('/sessions');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSession();
+  }, [id, member, navigate]);
 
   // Initialize canvas
   useEffect(() => {
@@ -68,11 +120,31 @@ export default function OnlineSessionPage() {
     }
   }, []);
 
+  // Session timer
+  useEffect(() => {
+    if (!session) return;
+
+    const startTime = new Date(session.scheduledDateTime || '');
+    const interval = setInterval(() => {
+      const now = new Date();
+      const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+      const hours = Math.floor(elapsed / 3600);
+      const minutes = Math.floor((elapsed % 3600) / 60);
+      const seconds = elapsed % 60;
+      setSessionTime(
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      );
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [session]);
+
   const handleSendMessage = () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && member) {
       const newMsg: ChatMessage = {
         id: String(chatMessages.length + 1),
-        sender: 'You',
+        sender: member._id,
+        senderName: member.profile?.nickname || 'You',
         message: newMessage,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
@@ -83,7 +155,7 @@ export default function OnlineSessionPage() {
   };
 
   const handleCopyMeetingLink = () => {
-    navigator.clipboard.writeText('https://meet.skillswap.com/session/abc123xyz');
+    navigator.clipboard.writeText(window.location.href);
     alert('Meeting link copied to clipboard!');
   };
 
@@ -154,7 +226,7 @@ export default function OnlineSessionPage() {
     if (canvas) {
       const link = document.createElement('a');
       link.href = canvas.toDataURL('image/png');
-      link.download = 'whiteboard.png';
+      link.download = `whiteboard-${Date.now()}.png`;
       link.click();
     }
   };
@@ -198,6 +270,66 @@ export default function OnlineSessionPage() {
     };
     reader.readAsDataURL(file);
   };
+
+  const handleEndCall = () => {
+    if (confirm('Are you sure you want to end this session?')) {
+      navigate('/sessions');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex justify-center items-center py-20">
+          <LoadingSpinner />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (sessionNotStarted) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex justify-center items-center py-20">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center max-w-md"
+          >
+            <AlertCircle className="w-16 h-16 text-primary mx-auto mb-6" />
+            <h2 className="font-heading text-3xl uppercase text-foreground mb-4">
+              Session Not Started Yet
+            </h2>
+            <p className="font-paragraph text-lg text-secondary-foreground mb-8">
+              This session is scheduled for {session ? format(new Date(session.scheduledDateTime || ''), 'MMM dd, yyyy - HH:mm') : 'later'}
+            </p>
+            <Button
+              onClick={() => navigate('/sessions')}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 font-paragraph"
+            >
+              Back to Sessions
+            </Button>
+          </motion.div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="flex justify-center items-center py-20">
+          <p className="font-paragraph text-lg text-secondary-foreground">Session not found</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-foreground">
@@ -247,11 +379,11 @@ export default function OnlineSessionPage() {
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-center">
                   <Users className="w-16 h-16 text-secondary-foreground mx-auto mb-4" />
-                  <p className="font-paragraph text-secondary-foreground text-sm">Participant</p>
+                  <p className="font-paragraph text-secondary-foreground text-sm">{otherUser?.fullName || 'Participant'}</p>
                 </div>
               </div>
               <div className="absolute bottom-4 left-4 bg-black/60 px-3 py-1 rounded-full">
-                <p className="font-paragraph text-xs text-white">Alex Johnson</p>
+                <p className="font-paragraph text-xs text-white">{otherUser?.fullName || 'Participant'}</p>
               </div>
             </motion.div>
           </div>
@@ -313,6 +445,7 @@ export default function OnlineSessionPage() {
               </Button>
 
               <Button
+                onClick={handleEndCall}
                 className="h-12 px-6 rounded-full bg-destructive text-destructiveforeground hover:bg-destructive/90 font-paragraph flex items-center gap-2"
               >
                 <Phone className="w-4 h-4" />
@@ -364,21 +497,33 @@ export default function OnlineSessionPage() {
             <>
               {/* Chat Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {chatMessages.length === 0 && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-center py-8"
+                  >
+                    <p className="font-paragraph text-sm text-secondary-foreground">
+                      No messages yet. Start the conversation!
+                    </p>
+                  </motion.div>
+                )}
                 {chatMessages.map((msg) => (
                   <motion.div
                     key={msg.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className={`flex ${msg.sender === 'You' ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.sender === member?._id ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
                       className={`max-w-xs px-4 py-2 rounded-2xl ${
-                        msg.sender === 'You'
+                        msg.sender === member?._id
                           ? 'bg-primary text-primary-foreground'
                           : 'bg-background text-foreground'
                       }`}
                     >
+                      <p className="font-paragraph text-xs opacity-70 mb-1">{msg.senderName}</p>
                       <p className="font-paragraph text-sm">{msg.message}</p>
                       <p className="font-paragraph text-xs opacity-70 mt-1">{msg.timestamp}</p>
                     </div>
@@ -412,7 +557,7 @@ export default function OnlineSessionPage() {
                   </p>
                   <div className="flex gap-2">
                     <Input
-                      value="https://meet.skillswap.com/session/abc123xyz"
+                      value={window.location.href}
                       readOnly
                       className="flex-1 h-9 text-xs font-paragraph bg-foreground/5"
                     />
